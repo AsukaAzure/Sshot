@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkRequest
 import com.example.screenshotjanitor.data.db.AppDatabase
 import com.example.screenshotjanitor.data.repository.ScreenshotRepository
+import com.example.screenshotjanitor.data.repository.SettingsRepository
 import com.example.screenshotjanitor.observer.ScreenshotDetector
 import com.example.screenshotjanitor.worker.ScreenshotCleanupWorker
 import java.util.concurrent.TimeUnit
@@ -24,6 +25,9 @@ class ScreenshotJanitorApp : Application() {
     lateinit var repository: ScreenshotRepository
         private set
 
+    lateinit var settingsRepository: SettingsRepository
+        private set
+
     private lateinit var detector: ScreenshotDetector
 
     override fun onCreate() {
@@ -32,8 +36,9 @@ class ScreenshotJanitorApp : Application() {
 
         database = AppDatabase.getDatabase(this)
         repository = ScreenshotRepository(database.screenshotDao())
+        settingsRepository = SettingsRepository(this)
 
-        detector = ScreenshotDetector(this)
+        detector = ScreenshotDetector(this, settingsRepository)
         detector.startDetector()
 
         scheduleCleanupWorker()

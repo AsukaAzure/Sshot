@@ -13,5 +13,8 @@ object AppConstants {
     const val ACTION_CLEANUP_OLD = "com.example.screenshotjanitor.ACTION_CLEANUP_OLD"
 
     const val EXTRA_SCREENSHOT_URI = "extra_screenshot_uri"
+
+    const val PREF_NAME = "screenshot_janitor_prefs"
+    const val PREF_AUTO_ARCHIVE = "pref_auto_archive"
 }
 

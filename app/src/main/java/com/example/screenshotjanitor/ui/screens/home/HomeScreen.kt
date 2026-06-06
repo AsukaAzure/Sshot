@@ -31,6 +31,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,6 +80,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -92,6 +95,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,6 +116,7 @@ import com.example.screenshotjanitor.viewmodel.HomeEvent
 import com.example.screenshotjanitor.viewmodel.HomeUiState
 import com.example.screenshotjanitor.viewmodel.HomeViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -218,11 +223,14 @@ fun HomeScreen(
     // ── Scroll-aware TopAppBar ────────────────────────────────────────────────
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             LargeTopAppBar(
                 title = {
@@ -294,7 +302,16 @@ fun HomeScreen(
             onReschedule = { hour, minute -> viewModel.rescheduleCleanup(hour, minute, context) },
             onArchive = { viewModel.archiveScreenshot(it) },
             onKeep = { viewModel.keepScreenshot(it) },
-            onDelete = { viewModel.deleteScreenshot(context, it) }
+            onDelete = { viewModel.deleteScreenshot(context, it) },
+            onToggleAutoArchive = {
+                viewModel.toggleAutoArchive()
+                val isEnabled = viewModel.isAutoArchiveEnabled.value
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = if (isEnabled) "Auto-Archive Enabled" else "Auto-Archive Disabled"
+                    )
+                }
+            }
         )
     }
 }
@@ -317,7 +334,8 @@ private fun HomeContent(
     onReschedule: (Int, Int) -> Unit,
     onArchive: (String) -> Unit,
     onKeep: (String) -> Unit,
-    onDelete: (String) -> Unit
+    onDelete: (String) -> Unit,
+    onToggleAutoArchive: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -390,7 +408,10 @@ private fun HomeContent(
 
         // ── Stats grid ────────────────────────────────────────────────────────
         item(key = "stats_grid") {
-            StatsGrid(uiState = uiState)
+            StatsGrid(
+                uiState = uiState,
+                onArchiveLongClick = onToggleAutoArchive
+            )
         }
 
         // ── Next cleanup banner ───────────────────────────────────────────────
@@ -591,7 +612,11 @@ fun PermissionWarningCard(
 // ─── Stats grid ───────────────────────────────────────────────────────────────
 
 @Composable
-fun StatsGrid(uiState: HomeUiState, modifier: Modifier = Modifier) {
+fun StatsGrid(
+    uiState: HomeUiState,
+    modifier: Modifier = Modifier,
+    onArchiveLongClick: () -> Unit = {}
+) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -611,7 +636,9 @@ fun StatsGrid(uiState: HomeUiState, modifier: Modifier = Modifier) {
                 icon = Icons.Default.Archive,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onLongClick = onArchiveLongClick,
+                isAutoBadgeVisible = uiState.isAutoArchiveEnabled
             )
         }
         Row(
@@ -638,6 +665,7 @@ fun StatsGrid(uiState: HomeUiState, modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun StatsCard(
     title: String,
@@ -645,10 +673,19 @@ fun StatsCard(
     icon: ImageVector,
     containerColor: androidx.compose.ui.graphics.Color,
     contentColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    isAutoBadgeVisible: Boolean = false
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (onLongClick != null) {
+                Modifier.combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick
+                )
+            } else Modifier
+        ),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -661,11 +698,29 @@ fun StatsCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = contentColor.copy(alpha = 0.7f)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = contentColor.copy(alpha = 0.7f)
+                    )
+                    if (isAutoBadgeVisible) {
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                "AUTO",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
                 Text(
                     text = value,
                     style = MaterialTheme.typography.headlineMedium,

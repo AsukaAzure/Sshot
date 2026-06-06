@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
         val app = application as ScreenshotJanitorApp
         HomeViewModelFactory(
             app.repository,
+            app.settingsRepository,
             androidx.work.WorkManager.getInstance(app),
         )
     }

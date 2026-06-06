@@ -35,6 +35,15 @@ The app stores metadata locally using Room instead of physically moving files.
 
 ---
 
+## Auto-Archive Mode
+For power users who want to cleanup everything by default:
+- **Toggle**: Long-press the "Archived" card on the Home screen to toggle Auto-Archive mode.
+- **Behavior**: When enabled, every new screenshot is automatically marked as "Archived" upon detection.
+- **Visual Indicator**: An "AUTO" badge appears on the Archived stats card when active.
+- **Smart Notifications**: Notifications reflect the auto-archived status, offering "Keep" or "Delete Now" as primary actions.
+
+---
+
 ## Automatic Cleanup
 A scheduled cleanup worker removes:
 - non-archived screenshots
@@ -248,6 +257,7 @@ The app should feel like a native Android utility rather than a productivity sui
 - Screenshot detection
 - Action notifications
 - Archive support
+- Auto-Archive mode (Toggle via long-press on Archive card)
 - Daily cleanup worker
 - Settings screen
 - History screen
@@ -324,6 +334,7 @@ These are intentionally out of scope for the MVP.
 
 ## Phase 6 — UI
 - [x] Create Home screen (showing tracked screenshots, stats, and next scheduled cleanup time)
+- [x] Implement Auto-Archive toggle (long-press on Archived card)
 - [ ] Create Settings screen
 - [ ] Create History screen
 - [x] Implement Material 3 expressive design

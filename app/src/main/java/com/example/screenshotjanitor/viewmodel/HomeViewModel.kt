@@ -13,9 +13,13 @@ import androidx.work.WorkManager
 import androidx.work.WorkRequest
 import com.example.screenshotjanitor.data.db.entity.ScreenshotEntity
 import com.example.screenshotjanitor.data.repository.ScreenshotRepository
+import com.example.screenshotjanitor.data.repository.SettingsRepository
 import com.example.screenshotjanitor.worker.ScreenshotCleanupWorker
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.asSharedFlow
@@ -29,42 +33,58 @@ data class HomeUiState(
     val archivedCount: Int = 0,
     val keptCount: Int = 0,
     val deletedCount: Int = 0,
-    val pendingCount: Int = 0
+    val pendingCount: Int = 0,
+    val isAutoArchiveEnabled: Boolean = false
 )
 
 class HomeViewModel(
     private val repository: ScreenshotRepository,
+    private val settingsRepository: SettingsRepository,
     private val workManager: WorkManager
 ) : ViewModel() {
 
-    val uiState: StateFlow<HomeUiState> = repository.allScreenshots
-        .map { list ->
-            var archived = 0
-            var kept = 0
-            var deleted = 0
-            var pending = 0
-            list.forEach {
-                when {
-                    it.deleted -> deleted++
-                    it.kept -> kept++
-                    it.archived -> archived++
-                    else -> pending++
-                }
+    private val _isAutoArchiveEnabled = MutableStateFlow(settingsRepository.isAutoArchiveEnabled())
+    val isAutoArchiveEnabled = _isAutoArchiveEnabled.asStateFlow()
+
+    val uiState: StateFlow<HomeUiState> = combine(
+        repository.allScreenshots,
+        _isAutoArchiveEnabled
+    ) { screenshots, isAutoEnabled ->
+        var archived = 0
+        var kept = 0
+        var deleted = 0
+        var pending = 0
+        screenshots.forEach {
+            when {
+                it.deleted -> deleted++
+                it.kept -> kept++
+                it.archived -> archived++
+                else -> pending++
             }
-            HomeUiState(
-                screenshots = list,
-                totalCount = list.size,
-                archivedCount = archived,
-                keptCount = kept,
-                deletedCount = deleted,
-                pendingCount = pending
-            )
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = HomeUiState()
+        HomeUiState(
+            screenshots = screenshots,
+            totalCount = screenshots.size,
+            archivedCount = archived,
+            keptCount = kept,
+            deletedCount = deleted,
+            pendingCount = pending,
+            isAutoArchiveEnabled = isAutoEnabled
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = HomeUiState()
+    )
+
+    fun toggleAutoArchive() {
+        val newValue = !settingsRepository.isAutoArchiveEnabled()
+        settingsRepository.setAutoArchiveEnabled(newValue)
+        _isAutoArchiveEnabled.value = newValue
+        // We might need to refresh uiState if it doesn't observe settingsRepository
+        // Actually uiState map above re-reads it, but it might not trigger on change.
+        // For simplicity, we can just rely on isAutoArchiveEnabled flow for UI feedback.
+    }
 
     val nextCleanupTimeMillis: StateFlow<Long?> = workManager.getWorkInfosForUniqueWorkFlow("ScreenshotCleanupWork")
         .map { workInfos ->
@@ -172,12 +192,13 @@ sealed class HomeEvent {
 
 class HomeViewModelFactory(
     private val repository: ScreenshotRepository,
+    private val settingsRepository: SettingsRepository,
     private val workManager: WorkManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(repository, workManager) as T
+            return HomeViewModel(repository, settingsRepository, workManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

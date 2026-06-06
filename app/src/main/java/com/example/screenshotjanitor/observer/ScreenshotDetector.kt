@@ -3,8 +3,9 @@ package com.example.screenshotjanitor.observer
 import android.content.Context
 import android.provider.MediaStore
 import android.util.Log
+import com.example.screenshotjanitor.data.repository.SettingsRepository
 
-class ScreenshotDetector(private val context: Context) {
+class ScreenshotDetector(private val context: Context, private val settingsRepository: SettingsRepository) {
 
     private val TAG = "ScreenshotDetector"
     private var contentObserver: ScreenshotContentObserver? = null
@@ -16,7 +17,7 @@ class ScreenshotDetector(private val context: Context) {
         }
 
         Log.d(TAG, "Starting ScreenshotDetector: Registering content observer")
-        val observer = ScreenshotContentObserver(context)
+        val observer = ScreenshotContentObserver(context, settingsRepository)
         context.contentResolver.registerContentObserver(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             true,

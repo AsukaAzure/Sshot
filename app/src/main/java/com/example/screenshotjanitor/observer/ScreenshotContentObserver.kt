@@ -11,6 +11,7 @@ import android.util.Log
 import com.example.screenshotjanitor.data.db.AppDatabase
 import com.example.screenshotjanitor.data.db.entity.ScreenshotEntity
 import com.example.screenshotjanitor.data.repository.ScreenshotRepository
+import com.example.screenshotjanitor.data.repository.SettingsRepository
 import com.example.screenshotjanitor.notifications.ScreenshotNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 
 class ScreenshotContentObserver(
     private val context: Context,
+    private val settingsRepository: SettingsRepository,
     handler: Handler = Handler(Looper.getMainLooper())
 ) : ContentObserver(handler) {
 
@@ -95,15 +97,16 @@ class ScreenshotContentObserver(
         CoroutineScope(Dispatchers.IO).launch {
             val existing = repository.getScreenshotByUri(uriString)
             if (existing == null) {
+                val isAutoArchive = settingsRepository.isAutoArchiveEnabled()
                 val entity = ScreenshotEntity(
                     uri = uriString,
                     fileName = fileName,
                     createdAt = createdAt,
-                    archived = false,
+                    archived = isAutoArchive,
                     deleted = false
                 )
                 repository.insertScreenshot(entity)
-                notificationManager.showScreenshotNotification(uriString)
+                notificationManager.showScreenshotNotification(uriString, isAutoArchive)
             } else {
                 Log.d(TAG, "Screenshot $uriString already processed")
             }
