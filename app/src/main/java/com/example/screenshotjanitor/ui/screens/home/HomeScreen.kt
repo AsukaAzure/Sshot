@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -143,29 +144,6 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val nextCleanupTime by viewModel.nextCleanupTimeMillis.collectAsState()
 
-    // ── Permission launcher ──────────────────────────────────────────────────
-    val intentSenderLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            viewModel.onDeletePermissionGranted()
-        } else {
-            viewModel.onDeletePermissionDenied()
-        }
-    }
-
-    LaunchedEffect(viewModel.events) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is HomeEvent.RequestDeletePermission -> {
-                    intentSenderLauncher.launch(
-                        IntentSenderRequest.Builder(event.intentSender).build()
-                    )
-                }
-            }
-        }
-    }
-
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -194,16 +172,45 @@ fun HomeScreen(
         )
     }
 
-    // Refresh permission state when activity resumes
+    // ── Reconciliation ───────────────────────────────────────────────────────
+    LaunchedEffect(Unit) {
+        viewModel.reconcileDatabase(context)
+    }
+
+    // ── Lifecycle Observer (Resume & Permissions) ────────────────────────────
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.addObserver(androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.reconcileDatabase(context)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     isAllFilesManager = android.os.Environment.isExternalStorageManager()
                 }
             }
         })
+    }
+
+    // ── Permission launcher ──────────────────────────────────────────────────
+    val intentSenderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            viewModel.onDeletePermissionGranted()
+        } else {
+            viewModel.onDeletePermissionDenied()
+        }
+    }
+
+    LaunchedEffect(viewModel.events) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is HomeEvent.RequestDeletePermission -> {
+                    intentSenderLauncher.launch(
+                        IntentSenderRequest.Builder(event.intentSender).build()
+                    )
+                }
+            }
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -1051,97 +1058,110 @@ fun ScreenshotCard(
             }
 
             // Action buttons
-            if (!screenshot.kept) {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                    thickness = 1.dp
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (!screenshot.archived) {
-                        FilledTonalButton(
-                            onClick = onArchive,
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            ),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(100.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Archive,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Archive", fontWeight = FontWeight.SemiBold)
-                        }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                thickness = 1.dp
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (!screenshot.archived && !screenshot.kept) {
+                    FilledTonalButton(
+                        onClick = onArchive,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(100.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Archive,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Archive", fontWeight = FontWeight.SemiBold)
+                    }
 
-                        FilledTonalButton(
-                            onClick = onKeep,
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(100.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Bookmark,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Keep", fontWeight = FontWeight.SemiBold)
-                        }
+                    FilledTonalButton(
+                        onClick = onKeep,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(100.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Bookmark,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Keep", fontWeight = FontWeight.SemiBold)
+                    }
 
-                        TextButton(
-                            onClick = onDelete,
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.DeleteOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Delete", fontWeight = FontWeight.SemiBold)
-                        }
-                    } else {
-                        FilledTonalButton(
-                            onClick = onKeep,
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(100.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Bookmark,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Keep", fontWeight = FontWeight.SemiBold)
-                        }
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.DeleteOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete", fontWeight = FontWeight.SemiBold)
+                    }
+                } else if (screenshot.kept) {
+                    // For kept items, show a "Remove/Delete" option
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.DeleteOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete Now", fontWeight = FontWeight.SemiBold)
+                    }
+                } else {
+                    // Archived state
+                    FilledTonalButton(
+                        onClick = onKeep,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(100.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Bookmark,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Keep", fontWeight = FontWeight.SemiBold)
+                    }
 
-                        TextButton(
-                            onClick = onDelete,
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.DeleteOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Delete Now", fontWeight = FontWeight.SemiBold)
-                        }
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.DeleteOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete Now", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
         }
     }
 }
-
-// ─── Helper data class (unused) ───────────────────────────────────────

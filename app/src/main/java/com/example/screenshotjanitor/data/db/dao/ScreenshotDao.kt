@@ -14,6 +14,9 @@ interface ScreenshotDao {
     @Query("SELECT * FROM screenshots ORDER BY createdAt DESC")
     fun getAllScreenshotsFlow(): Flow<List<ScreenshotEntity>>
 
+    @Query("SELECT * FROM screenshots")
+    suspend fun getAllScreenshots(): List<ScreenshotEntity>
+
     @Query("SELECT * FROM screenshots WHERE uri = :uri LIMIT 1")
     suspend fun getScreenshotByUri(uri: String): ScreenshotEntity?
 
@@ -25,6 +28,9 @@ interface ScreenshotDao {
 
     @Delete
     suspend fun deleteScreenshot(screenshot: ScreenshotEntity)
+
+    @Query("UPDATE screenshots SET deleted = 1 WHERE uri IN (:uris)")
+    suspend fun markAsDeleted(uris: List<String>)
 
     // Used by the janitor: only archived screenshots that haven't been kept or already deleted
     @Query("SELECT * FROM screenshots WHERE archived = 1 AND kept = 0 AND deleted = 0")

@@ -46,6 +46,13 @@ class HomeViewModel(
     private val _isAutoArchiveEnabled = MutableStateFlow(settingsRepository.isAutoArchiveEnabled())
     val isAutoArchiveEnabled = _isAutoArchiveEnabled.asStateFlow()
 
+    init {
+        // Run reconciliation when ViewModel is created (app start)
+        // We use a separate context/scope if needed, but viewModelScope is fine.
+        // But we need a Context for reconciliation. We can't easily get it here unless we pass it.
+        // Actually, ScreenshotRepository might need Context for reconcileDatabase.
+    }
+
     val uiState: StateFlow<HomeUiState> = combine(
         repository.allScreenshots,
         _isAutoArchiveEnabled
@@ -108,6 +115,12 @@ class HomeViewModel(
     fun keepScreenshot(uri: String) {
         viewModelScope.launch {
             repository.keepScreenshot(uri)
+        }
+    }
+
+    fun reconcileDatabase(context: Context) {
+        viewModelScope.launch {
+            repository.reconcileDatabase(context)
         }
     }
 

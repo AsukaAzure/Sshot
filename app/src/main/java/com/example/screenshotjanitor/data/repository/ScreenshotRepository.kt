@@ -2,6 +2,7 @@ package com.example.screenshotjanitor.data.repository
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import com.example.screenshotjanitor.data.db.dao.ScreenshotDao
 import com.example.screenshotjanitor.data.db.entity.ScreenshotEntity
@@ -80,12 +81,31 @@ class ScreenshotRepository(private val screenshotDao: ScreenshotDao) {
         Log.d(TAG, "Deleting screenshots: $uriStrings")
         if (uriStrings.isEmpty()) return@withContext DeleteResult.Success
 
+        // Separate URIs into existing and missing
+        val (existingUris, missingUris) = uriStrings.partition { uriString ->
+            try {
+                context.contentResolver.openInputStream(Uri.parse(uriString))?.use { true } ?: false
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        // If there are missing ones, mark them as deleted in DB immediately
+        if (missingUris.isNotEmpty()) {
+            Log.d(TAG, "Found ${missingUris.size} already missing screenshots, marking in DB.")
+            markAsDeleted(missingUris)
+        }
+
+        if (existingUris.isEmpty()) {
+            return@withContext DeleteResult.Success
+        }
+
         try {
-            val uris = uriStrings.map { Uri.parse(it) }
+            val uris = existingUris.map { Uri.parse(it) }
             val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, uris)
             DeleteResult.RequiresPermission(pendingIntent.intentSender)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create delete request for screenshots: $uriStrings", e)
+            Log.e(TAG, "Failed to create delete request for screenshots: $existingUris", e)
             DeleteResult.Failed(e)
         }
     }
@@ -116,29 +136,88 @@ class ScreenshotRepository(private val screenshotDao: ScreenshotDao) {
     }
 
     suspend fun markAsDeleted(uriStrings: List<String>) = withContext(Dispatchers.IO) {
-        for (uriString in uriStrings) {
-            Log.d(TAG, "Marking screenshot as deleted in DB: $uriString")
-            val entity = screenshotDao.getScreenshotByUri(uriString)
-            if (entity != null) {
-                screenshotDao.updateScreenshot(entity.copy(deleted = true))
-            } else {
-                screenshotDao.insertScreenshot(
-                    ScreenshotEntity(
-                        uri = uriString,
-                        fileName = Uri.parse(uriString).lastPathSegment ?: "Unknown",
-                        createdAt = System.currentTimeMillis(),
-                        archived = false,
-                        deleted = true
-                    )
-                )
-            }
-        }
+        if (uriStrings.isEmpty()) return@withContext
+        Log.d(TAG, "Marking ${uriStrings.size} screenshots as deleted in DB")
+        screenshotDao.markAsDeleted(uriStrings)
     }
 
 
     /** Returns all archived screenshots that are not kept and not yet deleted — targets for janitor. */
     suspend fun getArchivedForCleanup(): List<ScreenshotEntity> = withContext(Dispatchers.IO) {
         screenshotDao.getArchivedForCleanup()
+    }
+
+    /**
+     * Reconciles the database with the actual device storage.
+     * Identifies screenshots that have been deleted, trashed, or are no longer accessible
+     * and marks them as deleted in the local database.
+     */
+    suspend fun reconcileDatabase(context: Context) = withContext(Dispatchers.IO) {
+        val allEntities = try {
+            screenshotDao.getAllScreenshots()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch screenshots for reconciliation", e)
+            return@withContext
+        }
+
+        val missingUris = mutableListOf<String>()
+
+        for (entity in allEntities) {
+            if (entity.deleted) continue
+
+            val uri = Uri.parse(entity.uri)
+            val exists = try {
+                // Query MediaStore flags to check for trash/pending status
+                val projection = arrayOf(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) MediaStore.MediaColumns.IS_TRASHED else MediaStore.MediaColumns.DISPLAY_NAME,
+                    MediaStore.MediaColumns.IS_PENDING
+                )
+
+                context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val isTrashed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            val index = cursor.getColumnIndex(MediaStore.MediaColumns.IS_TRASHED)
+                            if (index != -1) cursor.getInt(index) != 0 else false
+                        } else false
+
+                        val isPending = try {
+                            val index = cursor.getColumnIndex(MediaStore.MediaColumns.IS_PENDING)
+                            if (index != -1) cursor.getInt(index) != 0 else false
+                        } catch (e: Exception) {
+                            false
+                        }
+
+                        // If trashed or pending, we consider it "missing" from active screenshots
+                        if (isTrashed || isPending) {
+                            false
+                        } else {
+                            // Final check: can we actually open the file?
+                            context.contentResolver.openInputStream(uri)?.use { true } ?: false
+                        }
+                    } else {
+                        // URI no longer exists in MediaStore
+                        false
+                    }
+                } ?: false
+            } catch (e: java.io.FileNotFoundException) {
+                false
+            } catch (e: SecurityException) {
+                // If we lose permission, don't mark as deleted to avoid data loss
+                true
+            } catch (e: Exception) {
+                Log.w(TAG, "Unexpected error checking existence of ${entity.uri}: ${e.message}")
+                false
+            }
+
+            if (!exists) {
+                missingUris.add(entity.uri)
+            }
+        }
+
+        if (missingUris.isNotEmpty()) {
+            Log.i(TAG, "Reconciliation: Marking ${missingUris.size} missing/trashed items as deleted")
+            markAsDeleted(missingUris)
+        }
     }
 }
 
