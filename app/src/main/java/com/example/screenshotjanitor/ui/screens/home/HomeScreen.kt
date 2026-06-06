@@ -7,18 +7,21 @@ import android.net.Uri
 import android.os.Build
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,23 +33,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.AutoDelete
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material3.AssistChip
@@ -56,16 +61,20 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,23 +86,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.screenshotjanitor.data.db.entity.ScreenshotEntity
+import com.example.screenshotjanitor.viewmodel.HomeEvent
 import com.example.screenshotjanitor.viewmodel.HomeUiState
 import com.example.screenshotjanitor.viewmodel.HomeViewModel
-import com.example.screenshotjanitor.viewmodel.HomeEvent
-import androidx.activity.result.IntentSenderRequest
-import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// ─── Filter categories ────────────────────────────────────────────────────────
+
+enum class ScreenshotFilter(val label: String, val icon: ImageVector) {
+    ALL("All", Icons.Default.Image),
+    PENDING("Pending", Icons.Default.HourglassEmpty),
+    ARCHIVED("Archived", Icons.Default.Archive),
+    KEPT("Kept", Icons.Default.Bookmark)
+}
+
+// ─── Root screen ──────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +125,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val nextCleanupTime by viewModel.nextCleanupTimeMillis.collectAsState()
 
+    // ── Permission launcher ──────────────────────────────────────────────────
     val intentSenderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -119,8 +140,9 @@ fun HomeScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is HomeEvent.RequestDeletePermission -> {
-                    val intentSenderRequest = IntentSenderRequest.Builder(event.intentSender).build()
-                    intentSenderLauncher.launch(intentSenderRequest)
+                    intentSenderLauncher.launch(
+                        IntentSenderRequest.Builder(event.intentSender).build()
+                    )
                 }
             }
         }
@@ -129,35 +151,51 @@ fun HomeScreen(
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else true
         )
     }
 
     var hasStoragePermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED
         )
     }
 
-    val launcher = rememberLauncherForActivityResult(
+    val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            hasNotificationPermission = permissions[Manifest.permission.POST_NOTIFICATIONS] ?: hasNotificationPermission
+            hasNotificationPermission =
+                permissions[Manifest.permission.POST_NOTIFICATIONS] ?: hasNotificationPermission
         }
-        hasStoragePermission = permissions[Manifest.permission.READ_MEDIA_IMAGES] ?: hasStoragePermission
+        hasStoragePermission =
+            permissions[Manifest.permission.READ_MEDIA_IMAGES] ?: hasStoragePermission
     }
 
+    // ── Filter state ─────────────────────────────────────────────────────────
+    var selectedFilter by remember { mutableStateOf(ScreenshotFilter.ALL) }
+
+    // ── Scroll-aware TopAppBar ────────────────────────────────────────────────
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+
     Scaffold(
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.CleaningServices,
@@ -166,186 +204,281 @@ fun HomeScreen(
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
-                            "Screenshot Janitor",
-                            fontWeight = FontWeight.ExtraBold,
-                            style = MaterialTheme.typography.titleLarge
+                            text = "Screenshot Janitor",
+                            fontWeight = FontWeight.ExtraBold
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                ),
+                scrollBehavior = scrollBehavior
             )
-        },
-        modifier = modifier.fillMaxSize()
+        }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            AnimatedVisibility(
-                visible = !hasNotificationPermission || !hasStoragePermission,
-                enter = expandVertically(animationSpec = spring()) + fadeIn(),
-                exit = shrinkVertically(animationSpec = spring()) + fadeOut()
-            ) {
-                PermissionWarningCard(
-                    hasNotificationPermission = hasNotificationPermission,
-                    hasStoragePermission = hasStoragePermission,
-                    onRequestPermissions = {
-                        val list = mutableListOf<String>()
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
-                            list.add(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                        if (!hasStoragePermission) {
-                            list.add(Manifest.permission.READ_MEDIA_IMAGES)
-                        }
-                        launcher.launch(list.toTypedArray())
-                    }
+        HomeContent(
+            innerPadding = innerPadding,
+            uiState = uiState,
+            nextCleanupTime = nextCleanupTime,
+            hasNotificationPermission = hasNotificationPermission,
+            hasStoragePermission = hasStoragePermission,
+            selectedFilter = selectedFilter,
+            onFilterSelected = { selectedFilter = it },
+            onRequestPermissions = {
+                val list = mutableListOf<String>()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+                    list.add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                if (!hasStoragePermission) {
+                    list.add(Manifest.permission.READ_MEDIA_IMAGES)
+                }
+                permissionLauncher.launch(list.toTypedArray())
+            },
+            onRunCleanup = { viewModel.runCleanupNow(context) },
+            onArchive = { viewModel.archiveScreenshot(it) },
+            onKeep = { viewModel.keepScreenshot(it) },
+            onDelete = { viewModel.deleteScreenshot(context, it) }
+        )
+    }
+}
+
+// ─── Content (everything in a single LazyColumn for full scrollability) ───────
+
+@Composable
+private fun HomeContent(
+    innerPadding: PaddingValues,
+    uiState: HomeUiState,
+    nextCleanupTime: Long?,
+    hasNotificationPermission: Boolean,
+    hasStoragePermission: Boolean,
+    selectedFilter: ScreenshotFilter,
+    onFilterSelected: (ScreenshotFilter) -> Unit,
+    onRequestPermissions: () -> Unit,
+    onRunCleanup: () -> Unit,
+    onArchive: (String) -> Unit,
+    onKeep: (String) -> Unit,
+    onDelete: (String) -> Unit
+) {
+    val listState = rememberLazyListState()
+
+    val trackedScreenshots = remember(uiState.screenshots) {
+        uiState.screenshots.filter { !it.deleted }
+    }
+
+    val filteredScreenshots = remember(trackedScreenshots, selectedFilter) {
+        when (selectedFilter) {
+            ScreenshotFilter.ALL -> trackedScreenshots
+            ScreenshotFilter.PENDING -> trackedScreenshots.filter { !it.archived && !it.kept }
+            ScreenshotFilter.ARCHIVED -> trackedScreenshots.filter { it.archived && !it.kept }
+            ScreenshotFilter.KEPT -> trackedScreenshots.filter { it.kept }
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            top = innerPadding.calculateTopPadding() + 8.dp,
+            bottom = innerPadding.calculateBottomPadding() + 24.dp,
+            start = 16.dp,
+            end = 16.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+
+        // ── Permission warning ────────────────────────────────────────────────
+        if (!hasNotificationPermission || !hasStoragePermission) {
+            item(key = "permission_card") {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = expandVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
+                    modifier = Modifier.animateItem(
+                        placementSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                            visibilityThreshold = IntOffset.VisibilityThreshold
+                        )
+                    )
+                ) {
+                    PermissionWarningCard(
+                        hasNotificationPermission = hasNotificationPermission,
+                        hasStoragePermission = hasStoragePermission,
+                        onRequestPermissions = onRequestPermissions
+                    )
+                }
+            }
+        }
+
+        // ── Stats grid ────────────────────────────────────────────────────────
+        item(key = "stats_grid") {
+            StatsGrid(
+                uiState = uiState,
+                modifier = Modifier.animateItem(
+                    placementSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                        visibilityThreshold = IntOffset.VisibilityThreshold
+                    )
+                )
+            )
+        }
+
+        // ── Next cleanup banner ───────────────────────────────────────────────
+        if (nextCleanupTime != null) {
+            item(key = "cleanup_banner") {
+                NextCleanupBanner(
+                    timeMillis = nextCleanupTime,
+                    onRunNow = onRunCleanup,
+                    modifier = Modifier.animateItem(
+                        placementSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                            visibilityThreshold = IntOffset.VisibilityThreshold
+                        )
+                    )
                 )
             }
+        }
 
-            StatsGrid(uiState = uiState)
-
-            AnimatedVisibility(
-                visible = nextCleanupTime != null,
-                enter = expandVertically(animationSpec = spring()) + fadeIn(),
-                exit = shrinkVertically(animationSpec = spring()) + fadeOut()
+        // ── Section header + filter chips ─────────────────────────────────────
+        item(key = "section_header") {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.animateItem(
+                    placementSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                        visibilityThreshold = IntOffset.VisibilityThreshold
+                    )
+                )
             ) {
-                nextCleanupTime?.let { time ->
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        ),
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Tracked Screenshots",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    AnimatedContent(
+                        targetState = filteredScreenshots.size,
+                        transitionSpec = {
+                            (slideInVertically { -it } + fadeIn()) togetherWith
+                                    (slideOutVertically { it } + fadeOut()) using SizeTransform(clip = false)
+                        },
+                        label = "count"
+                    ) { count ->
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                                .padding(horizontal = 10.dp, vertical = 2.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 16.dp, top = 12.dp, bottom = 12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoDelete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = "Next Scheduled Cleanup",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                    val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
-                                    Text(
-                                        text = sdf.format(Date(time)),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
-                                    )
-                                }
-                            }
-                            
-                            Button(
-                                onClick = { viewModel.runCleanupNow(context) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiary,
-                                    contentColor = MaterialTheme.colorScheme.onTertiary
-                                ),
-                                shape = RoundedCornerShape(
-                                    topStart = 0.dp,
-                                    bottomStart = 0.dp,
-                                    topEnd = 20.dp,
-                                    bottomEnd = 20.dp
-                                ),
-                                contentPadding = PaddingValues(0.dp),
-                                modifier = Modifier
-                                    .width(56.dp)
-                                    .height(64.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Run cleanup now",
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = "Tracked Screenshots",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            // Show all screenshots that haven't been physically deleted yet
-            val trackedScreenshots = remember(uiState.screenshots) {
-                uiState.screenshots.filter { !it.deleted }
-            }
-
-            if (trackedScreenshots.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Text(
-                            text = "No screenshots being tracked.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(
-                        items = trackedScreenshots,
-                        key = { it.uri }
-                    ) { screenshot ->
-                        Box(modifier = Modifier.animateItem()) {
-                            ScreenshotRow(
-                                screenshot = screenshot,
-                                onArchive = { viewModel.archiveScreenshot(screenshot.uri) },
-                                onKeep = { viewModel.keepScreenshot(screenshot.uri) },
-                                onDelete = { viewModel.deleteScreenshot(context, screenshot.uri) }
+                            Text(
+                                text = count.toString(),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
                 }
+
+                // Filter chip row (horizontally scrollable)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp)
+                ) {
+                    items(ScreenshotFilter.entries, key = { it.name }) { filter ->
+                        val count = when (filter) {
+                            ScreenshotFilter.ALL -> trackedScreenshots.size
+                            ScreenshotFilter.PENDING -> trackedScreenshots.count { !it.archived && !it.kept }
+                            ScreenshotFilter.ARCHIVED -> trackedScreenshots.count { it.archived && !it.kept }
+                            ScreenshotFilter.KEPT -> trackedScreenshots.count { it.kept }
+                        }
+                        FilterChip(
+                            selected = selectedFilter == filter,
+                            onClick = { onFilterSelected(filter) },
+                            label = {
+                                Text(
+                                    text = "${filter.label} ($count)",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = filter.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            shape = RoundedCornerShape(100.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Screenshot list ───────────────────────────────────────────────────
+        if (filteredScreenshots.isEmpty()) {
+            item(key = "empty_state") {
+                EmptyStateView(
+                    filter = selectedFilter,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp)
+                        .animateItem(
+                            placementSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow,
+                                visibilityThreshold = IntOffset.VisibilityThreshold
+                            )
+                        )
+                )
+            }
+        } else {
+            items(
+                items = filteredScreenshots,
+                key = { it.uri }
+            ) { screenshot ->
+                ScreenshotCard(
+                    screenshot = screenshot,
+                    onArchive = { onArchive(screenshot.uri) },
+                    onKeep = { onKeep(screenshot.uri) },
+                    onDelete = { onDelete(screenshot.uri) },
+                    modifier = Modifier.animateItem(
+                        placementSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium,
+                            visibilityThreshold = IntOffset.VisibilityThreshold
+                        ),
+                        fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        fadeOutSpec = spring(stiffness = Spring.StiffnessMedium)
+                    )
+                )
             }
         }
     }
 }
+
+// ─── Permission warning card ──────────────────────────────────────────────────
 
 @Composable
 fun PermissionWarningCard(
@@ -357,7 +490,7 @@ fun PermissionWarningCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer
         ),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -382,12 +515,8 @@ fun PermissionWarningCard(
             }
             val message = buildString {
                 append("The app needs the following permissions to function properly:\n")
-                if (!hasStoragePermission) {
-                    append("• Read Media Images (to detect screenshots)\n")
-                }
-                if (!hasNotificationPermission) {
-                    append("• Post Notifications (to show quick action options)\n")
-                }
+                if (!hasStoragePermission) append("• Read Media Images (to detect screenshots)\n")
+                if (!hasNotificationPermission) append("• Post Notifications (to show quick action options)\n")
             }
             Text(
                 text = message.trim(),
@@ -410,11 +539,11 @@ fun PermissionWarningCard(
     }
 }
 
+// ─── Stats grid ───────────────────────────────────────────────────────────────
+
 @Composable
-fun StatsGrid(uiState: HomeUiState) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+fun StatsGrid(uiState: HomeUiState, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -472,11 +601,12 @@ fun StatsCard(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(18.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -484,9 +614,9 @@ fun StatsCard(
             Column {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium,
-                    color = contentColor.copy(alpha = 0.8f)
+                    color = contentColor.copy(alpha = 0.75f)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 AnimatedContent(
@@ -494,14 +624,22 @@ fun StatsCard(
                     transitionSpec = {
                         val isIncrease = (targetState.toIntOrNull() ?: 0) > (initialState.toIntOrNull() ?: 0)
                         if (isIncrease) {
-                            (slideInVertically { height -> height } + fadeIn()) togetherWith
-                                    (slideOutVertically { height -> -height } + fadeOut())
+                            (slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { it } + fadeIn()) togetherWith
+                                    (slideOutVertically { -it } + fadeOut())
                         } else {
-                            (slideInVertically { height -> -height } + fadeIn()) togetherWith
-                                    (slideOutVertically { height -> height } + fadeOut())
-                        }.using(
-                            SizeTransform(clip = false)
-                        )
+                            (slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { -it } + fadeIn()) togetherWith
+                                    (slideOutVertically { it } + fadeOut())
+                        }.using(SizeTransform(clip = false))
                     },
                     label = "counterTransition"
                 ) { targetValue ->
@@ -513,15 +651,140 @@ fun StatsCard(
                     )
                 }
             }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(contentColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
+
+// ─── Next cleanup banner ──────────────────────────────────────────────────────
+
+@Composable
+fun NextCleanupBanner(
+    timeMillis: Long,
+    onRunNow: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        shape = RoundedCornerShape(28.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp, top = 14.dp, bottom = 14.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoDelete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column {
+                    Text(
+                        text = "Next Scheduled Cleanup",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
+                    Text(
+                        text = sdf.format(Date(timeMillis)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Button(
+                onClick = onRunNow,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+                ),
+                shape = RoundedCornerShape(
+                    topStart = 0.dp,
+                    bottomStart = 0.dp,
+                    topEnd = 28.dp,
+                    bottomEnd = 28.dp
+                ),
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .width(60.dp)
+                    .height(72.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Run cleanup now",
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        }
+    }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+@Composable
+fun EmptyStateView(filter: ScreenshotFilter, modifier: Modifier = Modifier) {
+    val (icon, message) = when (filter) {
+        ScreenshotFilter.ALL -> Icons.Default.Image to "No screenshots being tracked yet."
+        ScreenshotFilter.PENDING -> Icons.Default.HourglassEmpty to "No pending screenshots."
+        ScreenshotFilter.ARCHIVED -> Icons.Default.Archive to "No archived screenshots."
+        ScreenshotFilter.KEPT -> Icons.Default.Bookmark to "No kept screenshots."
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                modifier = Modifier.size(44.dp)
+            )
+        }
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+}
+
+// ─── Screenshot thumbnail ──────────────────────────────────────────────────────
 
 @Composable
 fun ScreenshotThumbnail(uriString: String, modifier: Modifier = Modifier) {
@@ -529,17 +792,17 @@ fun ScreenshotThumbnail(uriString: String, modifier: Modifier = Modifier) {
     val bitmapState = produceState<Bitmap?>(initialValue = null, key1 = uriString) {
         value = withContext(Dispatchers.IO) {
             try {
-                val imageUri = Uri.parse(uriString)
-                context.contentResolver.loadThumbnail(imageUri, Size(120, 120), null)
+                context.contentResolver.loadThumbnail(Uri.parse(uriString), Size(200, 200), null)
             } catch (e: Exception) {
                 null
             }
         }
     }
+
     Box(
         modifier = modifier
-            .size(72.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .size(88.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center
     ) {
@@ -555,44 +818,46 @@ fun ScreenshotThumbnail(uriString: String, modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.Image,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.size(28.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                modifier = Modifier.size(32.dp)
             )
         }
     }
 }
 
+// ─── Screenshot card ──────────────────────────────────────────────────────────
+
 @Composable
-fun ScreenshotRow(
+fun ScreenshotCard(
     screenshot: ScreenshotEntity,
     onArchive: () -> Unit,
     onKeep: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val cardColor = when {
+        screenshot.kept -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+        screenshot.archived -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f)
+        else -> MaterialTheme.colorScheme.surfaceContainer
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                screenshot.kept -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                screenshot.archived -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                else -> MaterialTheme.colorScheme.surfaceContainer
-            }
-        ),
-        shape = RoundedCornerShape(20.dp)
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Top row: thumbnail + info
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                ScreenshotThumbnail(
-                    uriString = screenshot.uri,
-                    modifier = Modifier.align(Alignment.Top)
-                )
+                ScreenshotThumbnail(uriString = screenshot.uri)
 
                 Column(
                     modifier = Modifier.weight(1f),
@@ -603,12 +868,12 @@ fun ScreenshotRow(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
+                        maxLines = 2
                     )
 
                     val dateFormatted = remember(screenshot.createdAt) {
-                        val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
-                        sdf.format(Date(screenshot.createdAt))
+                        SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
+                            .format(Date(screenshot.createdAt))
                     }
                     Text(
                         text = dateFormatted,
@@ -616,130 +881,157 @@ fun ScreenshotRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Badge row — can show multiple badges
-                    Row(
-                        modifier = Modifier.padding(top = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        when {
-                            screenshot.kept -> AssistChip(
-                                onClick = {},
-                                label = { Text("Kept") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Bookmark,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    leadingIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                border = null,
-                                shape = RoundedCornerShape(100.dp)
+                    Spacer(Modifier.height(4.dp))
+
+                    // Animated status badge
+                    AnimatedContent(
+                        targetState = when {
+                            screenshot.kept -> ScreenshotFilter.KEPT
+                            screenshot.archived -> ScreenshotFilter.ARCHIVED
+                            else -> ScreenshotFilter.PENDING
+                        },
+                        transitionSpec = {
+                            (slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut()) using
+                                    SizeTransform(clip = false)
+                        },
+                        label = "statusBadge"
+                    ) { status ->
+                        val (badgeColor, onBadgeColor, badgeIcon, badgeLabel) = when (status) {
+                            ScreenshotFilter.KEPT -> StatusBadgeData(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.onPrimaryContainer,
+                                Icons.Default.Bookmark,
+                                "Kept"
                             )
-                            screenshot.archived -> AssistChip(
-                                onClick = {},
-                                label = { Text("Archived · Will be cleaned") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Archive,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    leadingIconContentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                ),
-                                border = null,
-                                shape = RoundedCornerShape(100.dp)
+                            ScreenshotFilter.ARCHIVED -> StatusBadgeData(
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                                MaterialTheme.colorScheme.onTertiaryContainer,
+                                Icons.Default.Archive,
+                                "Archived · Will be cleaned"
                             )
-                            else -> AssistChip(
-                                onClick = {},
-                                label = { Text("Pending") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.HourglassEmpty,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                border = null,
-                                shape = RoundedCornerShape(100.dp)
+                            else -> StatusBadgeData(
+                                MaterialTheme.colorScheme.secondaryContainer,
+                                MaterialTheme.colorScheme.onSecondaryContainer,
+                                Icons.Default.HourglassEmpty,
+                                "Pending"
                             )
                         }
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = badgeLabel,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = badgeIcon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = badgeColor,
+                                labelColor = onBadgeColor,
+                                leadingIconContentColor = onBadgeColor
+                            ),
+                            border = null,
+                            shape = RoundedCornerShape(100.dp)
+                        )
                     }
                 }
             }
 
-            // Action buttons — kept items have no actions (they are safe);
-            // archived items can only be manually deleted or un-archived via Keep;
-            // pending items get all three actions.
+            // Action buttons
             if (!screenshot.kept) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    thickness = 1.dp
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (!screenshot.archived) {
-                        // Pending: show Archive + Keep + Delete
                         TextButton(
                             onClick = onArchive,
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.tertiary
                             )
                         ) {
-                            Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Archive,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Text("Archive")
+                            Text("Archive", fontWeight = FontWeight.SemiBold)
                         }
 
                         FilledTonalButton(
                             onClick = onKeep,
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(100.dp)
                         ) {
-                            Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Bookmark,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Text("Keep")
+                            Text("Keep", fontWeight = FontWeight.SemiBold)
                         }
 
                         TextButton(
                             onClick = onDelete,
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
                         ) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Text("Delete")
+                            Text("Delete", fontWeight = FontWeight.SemiBold)
                         }
                     } else {
-                        // Archived: show Keep (rescue from janitor) + Delete now
                         FilledTonalButton(
                             onClick = onKeep,
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(100.dp)
                         ) {
-                            Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Bookmark,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Text("Keep")
+                            Text("Keep", fontWeight = FontWeight.SemiBold)
                         }
 
                         TextButton(
                             onClick = onDelete,
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
                         ) {
-                            Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Text("Delete Now")
+                            Text("Delete Now", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -747,3 +1039,12 @@ fun ScreenshotRow(
         }
     }
 }
+
+// ─── Helper data class for status badge ───────────────────────────────────────
+
+private data class StatusBadgeData(
+    val containerColor: androidx.compose.ui.graphics.Color,
+    val contentColor: androidx.compose.ui.graphics.Color,
+    val icon: ImageVector,
+    val label: String
+)
