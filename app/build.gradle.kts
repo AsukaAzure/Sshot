@@ -24,9 +24,15 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // For personal phone builds, we can use the debug signing config
+            // so you can install it without creating a formal release keystore yet.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
