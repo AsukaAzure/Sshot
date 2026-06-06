@@ -78,6 +78,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -1034,131 +1035,161 @@ fun ScreenshotCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Status badge
-                    val status = when {
-                        screenshot.kept -> ScreenshotFilter.KEPT
-                        screenshot.archived -> ScreenshotFilter.ARCHIVED
-                        else -> ScreenshotFilter.PENDING
+                    // Status badge & quick actions
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val status = when {
+                            screenshot.kept -> ScreenshotFilter.KEPT
+                            screenshot.archived -> ScreenshotFilter.ARCHIVED
+                            else -> ScreenshotFilter.PENDING
+                        }
+                        val badgeData = when (status) {
+                            ScreenshotFilter.KEPT -> Triple(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                Icons.Default.Bookmark,
+                                "Kept"
+                            )
+
+                            ScreenshotFilter.ARCHIVED -> Triple(
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                                Icons.Default.Archive,
+                                "Archived"
+                            )
+
+                            else -> Triple(
+                                MaterialTheme.colorScheme.secondaryContainer,
+                                Icons.Default.HourglassEmpty,
+                                "Pending"
+                            )
+                        }
+
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    badgeData.third,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    badgeData.second,
+                                    null,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(containerColor = badgeData.first),
+                            border = null,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        if (screenshot.kept) {
+                            IconButton(
+                                onClick = onDelete,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteOutline,
+                                    contentDescription = "Delete Now",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
-                    val badgeData = when (status) {
-                        ScreenshotFilter.KEPT -> Triple(MaterialTheme.colorScheme.primaryContainer, Icons.Default.Bookmark, "Kept")
-                        ScreenshotFilter.ARCHIVED -> Triple(MaterialTheme.colorScheme.tertiaryContainer, Icons.Default.Archive, "Archived")
-                        else -> Triple(MaterialTheme.colorScheme.secondaryContainer, Icons.Default.HourglassEmpty, "Pending")
-                    }
-                    
-                    AssistChip(
-                        onClick = {},
-                        label = { Text(badgeData.third, style = MaterialTheme.typography.labelSmall) },
-                        leadingIcon = { Icon(badgeData.second, null, modifier = Modifier.size(12.dp)) },
-                        colors = AssistChipDefaults.assistChipColors(containerColor = badgeData.first),
-                        border = null,
-                        shape = RoundedCornerShape(8.dp)
-                    )
                 }
             }
 
-            // Action buttons
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                thickness = 1.dp
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (!screenshot.archived && !screenshot.kept) {
-                    FilledTonalButton(
-                        onClick = onArchive,
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(100.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Archive,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Archive", fontWeight = FontWeight.SemiBold)
-                    }
+            // Action buttons (only if not kept)
+            if (!screenshot.kept) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                    thickness = 1.dp
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!screenshot.archived) {
+                        FilledTonalButton(
+                            onClick = onArchive,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            ),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(100.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Archive,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Archive", fontWeight = FontWeight.SemiBold)
+                        }
 
-                    FilledTonalButton(
-                        onClick = onKeep,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(100.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Bookmark,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Keep", fontWeight = FontWeight.SemiBold)
-                    }
+                        FilledTonalButton(
+                            onClick = onKeep,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(100.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Bookmark,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Keep", fontWeight = FontWeight.SemiBold)
+                        }
 
-                    TextButton(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.DeleteOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Delete", fontWeight = FontWeight.SemiBold)
-                    }
-                } else if (screenshot.kept) {
-                    // For kept items, show a "Remove/Delete" option
-                    TextButton(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.DeleteOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Delete Now", fontWeight = FontWeight.SemiBold)
-                    }
-                } else {
-                    // Archived state
-                    FilledTonalButton(
-                        onClick = onKeep,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(100.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Bookmark,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Keep", fontWeight = FontWeight.SemiBold)
-                    }
+                        TextButton(
+                            onClick = onDelete,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Delete", fontWeight = FontWeight.SemiBold)
+                        }
+                    } else {
+                        // Archived state
+                        FilledTonalButton(
+                            onClick = onKeep,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(100.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Bookmark,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Keep", fontWeight = FontWeight.SemiBold)
+                        }
 
-                    TextButton(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.DeleteOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Delete Now", fontWeight = FontWeight.SemiBold)
+                        TextButton(
+                            onClick = onDelete,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Delete Now", fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
