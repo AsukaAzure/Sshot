@@ -174,6 +174,26 @@ fun HomeScreen(
         )
     }
 
+    var isAllFilesManager by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.os.Environment.isExternalStorageManager()
+            } else true
+        )
+    }
+
+    // Refresh permission state when activity resumes
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    isAllFilesManager = android.os.Environment.isExternalStorageManager()
+                }
+            }
+        })
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -230,6 +250,7 @@ fun HomeScreen(
             nextCleanupTime = nextCleanupTime,
             hasNotificationPermission = hasNotificationPermission,
             hasStoragePermission = hasStoragePermission,
+            isAllFilesManager = isAllFilesManager,
             selectedFilter = selectedFilter,
             onFilterSelected = { selectedFilter = it },
             onRequestPermissions = {
@@ -240,7 +261,17 @@ fun HomeScreen(
                 if (!hasStoragePermission) {
                     list.add(Manifest.permission.READ_MEDIA_IMAGES)
                 }
-                permissionLauncher.launch(list.toTypedArray())
+                if (list.isNotEmpty()) {
+                    permissionLauncher.launch(list.toTypedArray())
+                }
+            },
+            onRequestAllFilesAccess = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    }
+                    context.startActivity(intent)
+                }
             },
             onRunCleanup = { viewModel.runCleanupNow(context) },
             onReschedule = { hour, minute -> viewModel.rescheduleCleanup(hour, minute, context) },
@@ -260,9 +291,11 @@ private fun HomeContent(
     nextCleanupTime: Long?,
     hasNotificationPermission: Boolean,
     hasStoragePermission: Boolean,
+    isAllFilesManager: Boolean,
     selectedFilter: ScreenshotFilter,
     onFilterSelected: (ScreenshotFilter) -> Unit,
     onRequestPermissions: () -> Unit,
+    onRequestAllFilesAccess: () -> Unit,
     onRunCleanup: () -> Unit,
     onReschedule: (Int, Int) -> Unit,
     onArchive: (String) -> Unit,
@@ -297,7 +330,7 @@ private fun HomeContent(
     ) {
 
         // ── Permission warning ────────────────────────────────────────────────
-        if (!hasNotificationPermission || !hasStoragePermission) {
+        if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager) {
             item(key = "permission_card") {
                 AnimatedVisibility(
                     visible = true,
@@ -319,7 +352,9 @@ private fun HomeContent(
                     PermissionWarningCard(
                         hasNotificationPermission = hasNotificationPermission,
                         hasStoragePermission = hasStoragePermission,
-                        onRequestPermissions = onRequestPermissions
+                        isAllFilesManager = isAllFilesManager,
+                        onRequestPermissions = onRequestPermissions,
+                        onRequestAllFilesAccess = onRequestAllFilesAccess
                     )
                 }
             }
@@ -493,7 +528,9 @@ private fun HomeContent(
 fun PermissionWarningCard(
     hasNotificationPermission: Boolean,
     hasStoragePermission: Boolean,
-    onRequestPermissions: () -> Unit
+    isAllFilesManager: Boolean,
+    onRequestPermissions: () -> Unit,
+    onRequestAllFilesAccess: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -523,9 +560,12 @@ fun PermissionWarningCard(
                 )
             }
             val message = buildString {
-                append("The app needs the following permissions to function properly:\n")
+                append("The app needs permissions to function properly:\n")
                 if (!hasStoragePermission) append("• Read Media Images (to detect screenshots)\n")
                 if (!hasNotificationPermission) append("• Post Notifications (to show quick action options)\n")
+                if (!isAllFilesManager && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    append("• All Files Access (needed for AUTOMATIC background cleanup of system screenshots)\n")
+                }
             }
             Text(
                 text = message.trim(),
@@ -533,16 +573,28 @@ fun PermissionWarningCard(
                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f),
                 lineHeight = 20.sp
             )
-            Button(
-                onClick = onRequestPermissions,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                shape = RoundedCornerShape(100.dp),
-                modifier = Modifier.align(Alignment.End)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Grant Permissions", fontWeight = FontWeight.Bold)
+                if (!isAllFilesManager && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    TextButton(onClick = onRequestAllFilesAccess) {
+                        Text("Grant All Files Access", fontWeight = FontWeight.Bold)
+                    }
+                }
+                if (!hasStoragePermission || !hasNotificationPermission) {
+                    Button(
+                        onClick = onRequestPermissions,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ),
+                        shape = RoundedCornerShape(100.dp)
+                    ) {
+                        Text("Grant Basic", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

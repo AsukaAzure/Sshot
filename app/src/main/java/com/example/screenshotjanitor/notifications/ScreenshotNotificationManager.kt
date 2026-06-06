@@ -131,6 +131,23 @@ class ScreenshotNotificationManager(private val context: Context) {
         }
     }
 
+    fun showAutoCleanupNotification(count: Int) {
+        Log.d(TAG, "Showing auto cleanup notification for $count screenshots")
+        
+        val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_delete)
+            .setContentTitle("Auto Cleanup Complete")
+            .setContentText("Successfully auto-deleted $count archived screenshots.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+
+        try {
+            notificationManager.notify(AppConstants.NOTIFICATION_CLEANUP_ID, builder.build())
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Missing POST_NOTIFICATIONS permission", e)
+        }
+    }
+
     fun dismissNotification() {
         notificationManager.cancel(AppConstants.NOTIFICATION_ID)
     }

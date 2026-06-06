@@ -90,6 +90,31 @@ class ScreenshotRepository(private val screenshotDao: ScreenshotDao) {
         }
     }
 
+    suspend fun deleteScreenshotsDirectly(context: Context, uriStrings: List<String>): List<String> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Attempting direct deletion of ${uriStrings.size} screenshots")
+        val successfullyDeleted = mutableListOf<String>()
+        for (uriString in uriStrings) {
+            try {
+                val uri = Uri.parse(uriString)
+                val rows = context.contentResolver.delete(uri, null, null)
+                if (rows > 0) {
+                    successfullyDeleted.add(uriString)
+                    Log.d(TAG, "Successfully deleted screenshot directly: $uriString")
+                } else {
+                    Log.w(TAG, "ContentResolver.delete returned 0 for: $uriString. This might mean the file was already deleted or is not accessible.")
+                }
+            } catch (e: android.app.RecoverableSecurityException) {
+                Log.i(TAG, "RecoverableSecurityException for $uriString: File is not owned by this app and requires user consent to delete. Will fall back to notification.")
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException deleting $uriString: Direct deletion failed. This is expected on Android 10+ for system-captured screenshots.", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error deleting $uriString", e)
+            }
+        }
+        Log.d(TAG, "Direct deletion summary: ${successfullyDeleted.size} succeeded out of ${uriStrings.size}")
+        successfullyDeleted
+    }
+
     suspend fun markAsDeleted(uriStrings: List<String>) = withContext(Dispatchers.IO) {
         for (uriString in uriStrings) {
             Log.d(TAG, "Marking screenshot as deleted in DB: $uriString")
