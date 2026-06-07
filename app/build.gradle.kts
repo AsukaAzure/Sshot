@@ -63,6 +63,9 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // Splash Screen (Material You)
+    implementation(libs.androidx.core.splashscreen)
+
     // Lifecycle ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
