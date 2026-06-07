@@ -1,10 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Base application theme -->
-    <style name="Theme.ssJanitor" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Splash screen (Android 12+): icon only, background uses wallpaper color -->
-        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
-        <item name="android:windowSplashScreenAnimationDuration">400</item>
+    <!--
+      Splash screen theme for ScreenshotJanitor.
+      Uses Theme.SplashScreen for AndroidX compat, but overrides the
+      platform-level android:windowSplashScreenBackground to follow
+      the system's dynamic Material You color (via DeviceDefault's colorBackground).
+    -->
+    <style name="Theme.ssJanitor" parent="Theme.SplashScreen">
+        <!-- Icon shown in the splash circle -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <!-- Teal circle behind the icon so white broom stays visible -->
+        <item name="windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimationDuration">400</item>
+        <!-- After splash, Compose takes over theming -->
+        <item name="postSplashScreenTheme">@style/Theme.ssJanitor.Main</item>
+        <!--
+          Override the platform splash background to use the system's
+          colorBackground (which is Material You dynamic on Android 12+).
+          The android: prefix targets the real system splash screen on API 31+.
+        -->
+        <item name="android:windowSplashScreenBackground">?android:attr/colorBackground</item>
     </style>
+
+    <!-- Post-splash theme: DeviceDefault picks up Material You dynamic colors -->
+    <style name="Theme.ssJanitor.Main" parent="android:Theme.DeviceDefault.Light.NoActionBar" />
+
 </resources>

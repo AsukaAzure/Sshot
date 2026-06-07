@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Material 3 expressive icon for ScreenshotJanitor.
+  Simple bold broom silhouette — all filled shapes, no strokes.
+  White on teal background for strong readability at small sizes.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Broom handle (slightly tilted thick bar) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M51,24 L56,24 L58,57 L53,57 Z" />
+
+    <!-- Handle round end-cap -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M53.5,24 m-4,0 a4,4 0,1,1 8,0 a4,4 0,1,1 -8,0" />
+
+    <!-- Binding band (where handle meets bristles) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47,56 L64,56 L65,63 L46,63 Z" />
+
+    <!-- Bristles (wide trapezoid) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,63 L67,63 L70,82 L41,82 Z" />
+
+</vector>
