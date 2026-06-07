@@ -89,7 +89,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         val text = if (isAutoArchived) "This screenshot will be deleted in the next cleanup. Tap to Keep." else "Choose an action for this screenshot."
 
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -124,7 +124,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         )
 
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Cleanup Recommended")
             .setContentText("Found $count old screenshots. Tap to delete them and free up space.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -142,7 +142,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         Log.d(TAG, "Showing auto cleanup notification for $count screenshots")
         
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Auto Cleanup Complete")
             .setContentText("Successfully auto-deleted $count archived screenshots.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
