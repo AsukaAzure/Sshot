@@ -63,7 +63,5 @@ jobs:
           prerelease: false
           files: |
             app/build/outputs/apk/release/app-release.apk
-            # If using the signing step above, change the path to point to the signed APK:
-            # ${{ steps.sign_app.outputs.signedReleaseFile }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
