@@ -5,16 +5,24 @@
         <vector
             android:width="108dp"
             android:height="108dp"
-            android:viewportWidth="24"
-            android:viewportHeight="24">
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+
+            <!--
+                ABSOLUTE CENTERING STRATEGY (MAX SIZE):
+                1. Scale increased by another 30% from 1.27:
+                   1.27 * 1.30 = 1.651 (using 1.65)
+                2. Canvas Center (54, 54) - Icon Logic Center (12, 12) = Translate 42.
+                3. Pivot at (12, 12) ensures it grows perfectly from the center.
+            -->
             <group
                 android:name="autoDeleteGroup"
                 android:pivotX="12"
                 android:pivotY="12"
-                android:scaleX="0.45"
-                android:scaleY="0.45"
-                android:translateX="6.6"
-                android:translateY="6.6">
+                android:scaleX="1.65"
+                android:scaleY="1.65"
+                android:translateX="42"
+                android:translateY="42">
 
                 <!-- Animated element: The bin lid -->
                 <group
@@ -42,14 +50,10 @@
         </vector>
     </aapt:attr>
 
-    <!--
-      Lid Opening Animation:
-      Lifts and tilts the lid to simulate the bin opening and closing.
-    -->
+    <!-- Lid Opening Animation -->
     <target android:name="lidGroup">
         <aapt:attr name="android:animation">
             <set>
-                <!-- Open Lid -->
                 <set>
                     <objectAnimator
                         android:duration="400"
@@ -64,7 +68,6 @@
                         android:valueTo="-20"
                         android:interpolator="@android:anim/decelerate_interpolator" />
                 </set>
-                <!-- Close Lid -->
                 <set>
                     <objectAnimator
                         android:duration="400"
@@ -85,10 +88,7 @@
         </aapt:attr>
     </target>
 
-    <!--
-      Color Pulse:
-      Keeps the icon breathing with Material You accents.
-    -->
+    <!-- Color Pulse -->
     <target android:name="path_main">
         <aapt:attr name="android:animation">
             <set>
