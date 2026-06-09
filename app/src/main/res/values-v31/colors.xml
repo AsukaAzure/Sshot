@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Material You dynamic background for the launcher icon.
-      On API 31+ the framework exposes wallpaper-derived color resources.
-      system_accent1_600 is a vibrant mid-tone from the user's wallpaper.
-      Falls back to the static teal in values/colors.xml on pre-31.
+      Material You Dynamic Launcher Icon Colors
+      Background: The darkest shade (900) from the user's wallpaper palette for maximum contrast.
+      Foreground: A very light shade (100) to make the broom icon pop.
     -->
-    <color name="ic_launcher_background">@android:color/system_accent1_600</color>
+    <color name="ic_launcher_background">@android:color/system_accent1_900</color>
+    <color name="ic_launcher_foreground_color">@android:color/system_accent1_100</color>
 </resources>

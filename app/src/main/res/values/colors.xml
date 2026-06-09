@@ -9,5 +9,6 @@
     <color name="white">#FFFFFFFF</color>
 
     <!-- Adaptive icon background — system overrides with dynamic color on API 31+ -->
-    <color name="ic_launcher_background">#006E6D</color>
+    <color name="ic_launcher_background">#002621</color>
+    <color name="ic_launcher_foreground_color">#B2DFDB</color>
 </resources>
