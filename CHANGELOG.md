@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.0-alpha] - 2026-06-23
+
+### Added
+- URI-based screenshot detection in `ScreenshotContentObserver` (query by content URI ID instead of scanning latest)
+- Deduplication with synchronized `processedUris`/`pendingUris` sets to prevent duplicate processing
+- Retry logic with `queryByIdWithRetry` (3 attempts with 500ms delay) to handle MediaStore index race
+- `clearProcessedUris()` lifecycle hook called after cleanup work completes
+- `goAsync()`/`pendingResult.finish()` pattern in `BootReceiver` and `NotificationActionReceiver` for proper BroadcastReceiver lifecycle
+- `contentObserver` reference on `SsJanitorApp` to enable cleanup worker to reset dedup state
+- `notificationManager` lifecycle management in `ScreenshotDetectionService` (dismiss on destroy)
+
+### Changed
+- Switched `SsJanitorApp` database/repository/settings from `lateinit` to `by lazy` for thread-safe initialization
+- Refactored `ScreenshotDetectionService.onCreate()` to start foreground in `onCreate` (moved out of helper method)
+- Simplified `ScreenshotCleanupWorker` — removed dead `autoDelete = true` branch; always deletes archived screenshots
+- Shared single `CoroutineScope(Dispatchers.IO)` in `ScreenshotContentObserver` instead of creating per-screenshot scopes
+
+### Removed
+- All `Log.d`/`Log.e`/`Log.w` statements across the codebase (production code cleanup)
+- `ScreenshotDetector` stale-run guard log messages
+
+### Fixed
+- `ContentUris.parseId()` crash path — wrapped in try/catch for `NumberFormatException`
+- `queryByIdWithRetry` — fixed to 3 total attempts (was 4 due to fallthrough)
+- `BootReceiver` — missing `goAsync()` which could cause ANR on boot
+- `NotificationActionReceiver` — missing `goAsync()` which could cause ANR
+
 ## [0.3.1-alpha] - 2026-06-10
 
 ### Added
