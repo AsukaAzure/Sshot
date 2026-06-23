@@ -16,8 +16,8 @@ android {
         applicationId = "com.example.screenshotjanitor"
         minSdk = 34
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.4.1-alpha"
+        versionCode = 4
+        versionName = "0.4.2-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

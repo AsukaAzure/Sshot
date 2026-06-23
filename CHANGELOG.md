@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.2-alpha] - 2026-06-24
+
+### Fixed
+- **Cold-start screenshot detection race** — Complete rewrite of `ScreenshotContentObserver` to handle MediaStore cold-start indexing delay on fresh app process:
+  - Extended URI-based retry window from 1.5s to ~10.3s with exponential backoff (200ms → 2s × 3) so MediaStore has time to populate `DISPLAY_NAME` and `RELATIVE_PATH` columns on first launch
+  - Added `IS_PENDING` column check — skips rows that MediaStore has not finished writing, returning `false` for retry instead of giving up
+  - Added blank column detection — returns `false` for retry when `displayName` or `relativePath` are empty (the root cause: old code returned `true` and marked the URI as processed before columns were populated)
+  - Added `performInitialScan()` — scans the last 30 seconds of MediaStore immediately after observer registration to catch screenshots taken during the app startup window
+  - Added `scanLatestScreenshots()` fallback — scans the last 60 seconds of MediaStore when URI-based retries are exhausted (handles edge cases where `onChange` fires before MediaStore creates the row at all)
+  - Null/parse-error `onChange` URI now falls back to scanning recent images instead of silently dropping the event
+  - `handleNewScreenshot` converted from fire-and-forget coroutine to `suspend` function so callers wait for DB insert + notification before marking the URI as processed
+  - Dedup set capped at 200 entries with oldest-25% eviction to prevent unbounded memory growth
+
+### Changed
+- `ScreenshotDetector.startDetector()` now calls `performInitialScan()` on the observer right after registration
+
 ## [0.4.1-alpha] - 2026-06-24
 
 ### Changed

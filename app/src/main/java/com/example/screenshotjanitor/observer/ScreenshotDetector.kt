@@ -21,6 +21,10 @@ class ScreenshotDetector(private val context: Context, private val settingsRepos
         contentObserver = observer
         val app = context.applicationContext as SsJanitorApp
         app.contentObserver = observer
+
+        // Scan for screenshots captured during process startup (before the
+        // observer was registered).  This closes the cold-start detection gap.
+        observer.performInitialScan()
     }
 
     fun stopDetector() {
