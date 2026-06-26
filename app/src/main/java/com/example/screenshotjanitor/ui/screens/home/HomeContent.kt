@@ -398,7 +398,7 @@ fun HomeContent(
                 EmptyStateView(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 48.dp)
+                        .padding(vertical = 8.dp)
                 )
             }
         } else {
