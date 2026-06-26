@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material3.Card
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.screenshotjanitor.viewmodel.HomeUiState
+
+import kotlinx.coroutines.delay
 
 @Composable
 fun StatsGrid(
@@ -245,12 +248,44 @@ fun CleanedBadge(
     val greenContainer = if (isDark) Color(0xFF1B5E20) else Color(0xFF4CAF50)
     val greenContent = if (isDark) Color(0xFFC8E6C9) else Color(0xFFFFFFFF)
 
+    val scale = remember { Animatable(0f) }
+
+    LaunchedEffect(text) {
+        // Reset and animate to full size with overspring
+        scale.snapTo(0f)
+        scale.animateTo(
+            targetValue = 1.0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessVeryLow
+            )
+        )
+        // Add a little bounce
+        delay(150)
+        scale.animateTo(
+            targetValue = 1.3f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+        // Settle to final size
+        delay(250)
+        scale.animateTo(
+            targetValue = 1.0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        )
+    }
+
     Box(
         modifier = modifier
             .graphicsLayer {
                 rotationZ = 12f
-                scaleX = 1.3f
-                scaleY = 1.3f
+                scaleX = scale.value
+                scaleY = scale.value
             }
     ) {
         Box(
@@ -259,12 +294,23 @@ fun CleanedBadge(
                 .background(greenContainer)
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
-            Text(
-                text,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
-                color = greenContent,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = greenContent,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                    color = greenContent,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
