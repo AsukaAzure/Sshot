@@ -317,8 +317,8 @@ fun CleanedBadge(
 private fun formatBytes(bytes: Long): String {
     val mb = bytes / (1024.0 * 1024.0)
     return if (mb < 1000) {
-        String.format("%.1f", mb) + " MB"
+        String.format(java.util.Locale.US, "%.1f", mb) + " MB"
     } else {
-        String.format("%.2f", mb / 1024.0) + " GB"
+        String.format(java.util.Locale.US, "%.2f", mb / 1024.0) + " GB"
     }
 }

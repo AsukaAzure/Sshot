@@ -1,8 +1,32 @@
+import java.io.File
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
 }
+
+val signingPropsFile: File = rootProject.file("keystore.properties")
+val signingProps: Properties = Properties()
+if (signingPropsFile.exists()) {
+    FileInputStream(signingPropsFile).use { fis ->
+        signingProps.load(fis)
+    }
+}
+
+fun signingProp(key: String): String = signingProps.getProperty(key, "")
+
+val resolvedKeystoreFile: File? = if (signingPropsFile.exists()) {
+    val raw = signingProp("storeFile")
+    val f = if (File(raw).isAbsolute) {
+        File(raw)
+    } else {
+        rootProject.file(raw)
+    }
+    if (f.exists()) f else null
+} else null
 
 android {
     namespace = "dev.sj010.ssjanitor"
@@ -22,6 +46,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (resolvedKeystoreFile != null) {
+            create("release") {
+                storeFile = resolvedKeystoreFile
+                storePassword = signingProp("storePassword")
+                keyAlias = signingProp("keyAlias")
+                keyPassword = signingProp("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -30,9 +65,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // For personal phone builds, we can use the debug signing config
-            // so you can install it without creating a formal release keystore yet.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (resolvedKeystoreFile != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {
@@ -41,6 +78,12 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
@@ -54,7 +97,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

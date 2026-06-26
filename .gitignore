@@ -9,9 +9,15 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+/app/build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
 .android-testing-skills-source/
 .agent/
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
