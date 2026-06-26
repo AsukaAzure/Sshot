@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0] - 2026-06-27
+
+### Changed
+- **Package renamed** — Application ID changed from `com.example.screenshotjanitor` to `dev.sj010.ssjanitor`
+- **README improved** — Added Install section with GitHub Releases, Obtainium, IzzyOnDroid, and F-Droid badges
+- **Obtainium support** — One-tap deep-link to add app directly from GitHub Releases
+- **Version bumped** to 1.0.0 (stable public release)
+
 ## [0.5.0-alpha] - 2026-06-26
 
 ### Added

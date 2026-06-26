@@ -6,6 +6,7 @@
     <strong>Kotlin</strong> · <strong>Jetpack Compose</strong> · <strong>Material 3</strong>
   </p>
   <p>
+    <a href="#install">Install</a> ·
     <a href="#features">Features</a> ·
     <a href="#tech-stack">Tech Stack</a> ·
     <a href="#getting-started">Getting Started</a> ·
@@ -17,6 +18,15 @@
 ---
 
 ssJanitor monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule. Intentionally lightweight, battery-friendly, and aligned with modern Android storage and background execution policies.
+
+## Install
+
+| | Source |
+|---|---|
+| [![GitHub Release](https://img.shields.io/github/v/release/ShubhamJ010/ScreenshotJanitor?style=flat-square&logo=github&color=blue)](https://github.com/ShubhamJ010/ScreenshotJanitor/releases/latest) | GitHub Releases |
+| [![Obtainium](https://img.shields.io/badge/Obtainium-Add%20App-blue?style=flat-square&logo=obtainium)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22dev.sj010.ssjanitor%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FShubhamJ010%2FScreenshotJanitor%22%2C%22author%22%3A%22ShubhamJ010%22%2C%22name%22%3A%22ssJanitor%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22sortMethodChoice%5C%22%3A%5C%22date%5C%22%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22appAuthor%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%2C%5C%22refreshBeforeDownload%5C%22%3Afalse%2C%5C%22includeZips%5C%22%3Afalse%2C%5C%22zippedApkFilterRegEx%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D) | One-tap install via Obtainium |
+| [![IzzyOnDroid](https://img.shields.io/endpoint?url=https%3A%2F%2Fapt.izzysoft.org%2Ffdroid%2Fapi%2Fshield%3FpkgName%3Ddev.sj010.ssjanitor&style=flat-square&logo=android&color=green)](https://apt.izzysoft.org/fdroid/apk/dev.sj010.ssjanitor) | F-Droid repo by IzzyOnDroid |
+| [![F-Droid](https://img.shields.io/badge/F-Droid-Coming%20Soon-grey?style=flat-square&logo=f-droid&color=grey)](#f-droid) | *TODO — pending publication* |
 
 ## Screenshots
 
@@ -63,14 +73,6 @@ ssJanitor monitors newly created screenshots, lets you archive or delete them th
 
 No API keys, no cloud services, no configuration required.
 
-## Install with Obtainium
-
-Easily receive updates directly from GitHub Releases using [Obtainium](https://github.com/ImranR98/Obtainium).
-
-[![Get it on Obtainium](https://img.shields.io/badge/Obtainium-Add%20App-blue)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.example.screenshotjanitor%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FShubhamJ010%2FScreenshotJanitor%22%2C%22author%22%3A%22ShubhamJ010%22%2C%22name%22%3A%22ssJanitor%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22sortMethodChoice%5C%22%3A%5C%22date%5C%22%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22appAuthor%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%2C%5C%22refreshBeforeDownload%5C%22%3Afalse%2C%5C%22includeZips%5C%22%3Afalse%2C%5C%22zippedApkFilterRegEx%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D)
-
-If Obtainium is installed on your device, tapping the badge will import this app automatically.
-
 ## Permissions
 
 ```xml
@@ -88,7 +90,7 @@ If Obtainium is installed on your device, tapping the badge will import this app
 ## Project Structure
 
 ```
-app/src/main/java/com/example/screenshotjanitor/
+app/src/main/java/dev/sj010/ssjanitor/
 ├── core/              — Constants, extensions, utils
 ├── data/              — Room DB, DAO, entities, repositories
 ├── notifications/     — Notification manager & action receiver

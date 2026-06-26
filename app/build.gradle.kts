@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.screenshotjanitor"
+    namespace = "dev.sj010.ssjanitor"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -13,11 +13,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.screenshotjanitor"
+        applicationId = "dev.sj010.ssjanitor"
         minSdk = 34
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.5.0-alpha"
+        versionCode = 6
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

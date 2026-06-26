@@ -38,9 +38,9 @@
             android:name=".notifications.NotificationActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.ssjanitor.ACTION_ARCHIVE" />
-                <action android:name="com.example.ssjanitor.ACTION_KEEP" />
-                <action android:name="com.example.ssjanitor.ACTION_DELETE" />
+                <action android:name="dev.sj010.ssjanitor.ACTION_ARCHIVE" />
+                <action android:name="dev.sj010.ssjanitor.ACTION_KEEP" />
+                <action android:name="dev.sj010.ssjanitor.ACTION_DELETE" />
             </intent-filter>
         </receiver>
 

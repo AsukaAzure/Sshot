@@ -80,16 +80,16 @@ Commands used via ADB (wireless):
 
 ```bash
 # Cold launch timing
-adb shell am start -S -W -n com.example.screenshotjanitor/.MainActivity
+adb shell am start -S -W -n dev.sj010.ssjanitor/.MainActivity
 
 # Foreground metrics
-adb shell dumpsys meminfo $(adb shell pidof -s com.example.screenshotjanitor)
-adb shell top -n 1 -b -p $(adb shell pidof -s com.example.screenshotjanitor)
-adb shell dumpsys procstats com.example.screenshotjanitor --hours 1
+adb shell dumpsys meminfo $(adb shell pidof -s dev.sj010.ssjanitor)
+adb shell top -n 1 -b -p $(adb shell pidof -s dev.sj010.ssjanitor)
+adb shell dumpsys procstats dev.sj010.ssjanitor --hours 1
 
 # Background (after sending to home)
 adb shell input keyevent KEYCODE_HOME
 sleep 10
-adb shell dumpsys meminfo $(adb shell pidof -s com.example.screenshotjanitor)
-adb shell top -n 1 -b -p $(adb shell pidof -s com.example.screenshotjanitor)
+adb shell dumpsys meminfo $(adb shell pidof -s dev.sj010.ssjanitor)
+adb shell top -n 1 -b -p $(adb shell pidof -s dev.sj010.ssjanitor)
 ```
