@@ -396,8 +396,6 @@ fun HomeContent(
         if (showEmptyState) {
             item(key = "empty_state") {
                 EmptyStateView(
-                    message = "No screenshots being tracked yet.",
-                    icon = Icons.Default.Image,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 48.dp)

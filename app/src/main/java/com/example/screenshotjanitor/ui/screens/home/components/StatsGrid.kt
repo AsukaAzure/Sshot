@@ -251,31 +251,28 @@ fun CleanedBadge(
     val scale = remember { Animatable(0f) }
 
     LaunchedEffect(text) {
-        // Reset and animate to full size with overspring
         scale.snapTo(0f)
         scale.animateTo(
             targetValue = 1.0f,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessVeryLow
+                stiffness = Spring.StiffnessLow
             )
         )
-        // Add a little bounce
-        delay(150)
+        delay(80)
         scale.animateTo(
             targetValue = 1.3f,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
+                stiffness = Spring.StiffnessMedium
             )
         )
-        // Settle to final size
-        delay(250)
+        delay(120)
         scale.animateTo(
             targetValue = 1.0f,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMedium
+                stiffness = Spring.StiffnessHigh
             )
         )
     }
