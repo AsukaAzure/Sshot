@@ -64,7 +64,12 @@ jobs:
             exit 1
           fi
           echo "Verifying signature for: $APK_PATH"
-          apksigner verify --verbose --print-certs "$APK_PATH"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          if [ -z "$APKSIGNER" ]; then
+            echo "ERROR: apksigner not found"
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
           echo ""
           echo "APK signature verification complete."
 
