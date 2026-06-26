@@ -35,7 +35,10 @@ fun PermissionWarningSection(
     onRequestDisableBatteryOpt: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         // ── Permission warning card ──────────────────────────────────────
         if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager) {
             PermissionWarningCard(
