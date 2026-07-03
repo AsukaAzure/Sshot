@@ -6,6 +6,9 @@
     <strong>Kotlin</strong> · <strong>Jetpack Compose</strong> · <strong>Material 3</strong>
   </p>
   <p>
+    Forked project from <a href="https://github.com/ShubhamJ010/ScreenshotJanitor">ShubhamJ010/ScreenshotJanitor</a>
+  </p>
+  <p>
     <a href="#install">Install</a> ·
     <a href="#features">Features</a> ·
     <a href="#tech-stack">Tech Stack</a> ·
@@ -16,30 +19,21 @@
 </div>
 
 ---
-It is a forked project from <a href="https://github.com/ShubhamJ010/ScreenshotJanitor">ShubhamJ010/ScreenshotJanitor</a>
+## Sshot has an overlay that pops up after a screenshot, letting you set a custom timer to delete it.
 
 Sshot monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule. Intentionally lightweight, battery-friendly, and aligned with modern Android storage and background execution policies.
 
 ## Install
 
 [![GitHub Release](https://img.shields.io/github/v/release/ShubhamJ010/ScreenshotJanitor?style=for-the-badge&logo=github&color=blue)](https://github.com/ShubhamJ010/ScreenshotJanitor/releases/latest)
-[![Obtainium](https://img.shields.io/badge/Obtainium-Add%20App-blue?style=for-the-badge&logo=android&color=blue)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22dev.sj010.ssjanitor%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FShubhamJ010%2FScreenshotJanitor%22%2C%22author%22%3A%22ShubhamJ010%22%2C%22name%22%3A%22ssJanitor%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22sortMethodChoice%5C%22%3A%5C%22date%5C%22%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22appAuthor%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%2C%5C%22refreshBeforeDownload%5C%22%3Afalse%2C%5C%22includeZips%5C%22%3Afalse%2C%5C%22zippedApkFilterRegEx%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https%3A%2F%2Fapt.izzysoft.org%2Ffdroid%2Fapi%2Fshield%3FpkgName%3Ddev.sj010.ssjanitor&style=for-the-badge&logo=android&color=green)](https://apt.izzysoft.org/fdroid/apk/dev.sj010.ssjanitor)
-[![F-Droid](https://img.shields.io/badge/F--Droid-Pending-yellow?style=for-the-badge&logo=android)](https://f-droid.org/packages/dev.sj010.ssjanitor/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 ## Screenshots
 
 <table>
   <tr>
-    <td><img src="screenshots/Screenshot_2026-06-24-00-04-41-34_9bfa694f76ba0ec3b1e69f570e4bca5a.jpg" width="200" alt="Screenshot 1"/></td>
-    <td><img src="screenshots/Screenshot_2026-06-24-00-04-52-20_9bfa694f76ba0ec3b1e69f570e4bca5a.jpg" width="200" alt="Screenshot 2"/></td>
-    <td><img src="screenshots/Screenshot_2026-06-24-00-05-02-23_9bfa694f76ba0ec3b1e69f570e4bca5a.jpg" width="200" alt="Screenshot 3"/></td>
-  </tr>
-  <tr>
-    <td><img src="screenshots/Screenshot_2026-06-24-00-05-09-40_9bfa694f76ba0ec3b1e69f570e4bca5a.jpg" width="200" alt="Screenshot 4"/></td>
-    <td><img src="screenshots/1000134435.jpg" width="200" alt="Screenshot 5"/></td>
-    <td><img src="screenshots/Screenshot_2026-06-24-00-05-35-14_9bfa694f76ba0ec3b1e69f570e4bca5a.jpg" width="200" alt="Screenshot 6"/></td>
+    <td><img src="screenshots/Screenshot_20260703_190111_Sshot.jpg" width="200" alt="Screenshot 1"/></td>
+    <td><img src="screenshots/Screenshot_20260703_190356_Sshot.jpg" width="200" alt="Screenshot 2"/></td>
   </tr>
 </table>
 
