@@ -14,6 +14,7 @@ import androidx.work.WorkRequest
 import dev.sj010.ssjanitor.data.db.entity.ScreenshotEntity
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
+import dev.sj010.ssjanitor.network.UpdateManager
 import dev.sj010.ssjanitor.worker.ScreenshotCleanupWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -36,7 +37,8 @@ data class HomeUiState(
     val deletedBytes: Long = 0L,
     val pendingCount: Int = 0,
     val isAutoArchiveEnabled: Boolean = false,
-    val isCleanupPaused: Boolean = false
+    val isCleanupPaused: Boolean = false,
+    val latestVersion: String? = null
 )
 
 class HomeViewModel(
@@ -51,6 +53,9 @@ class HomeViewModel(
     private val _isCleanupPaused = MutableStateFlow(settingsRepository.isCleanupPaused())
     val isCleanupPaused = _isCleanupPaused.asStateFlow()
 
+    private val _latestVersion = MutableStateFlow<String?>(null)
+    val latestVersion = _latestVersion.asStateFlow()
+
     init {
         // Run reconciliation when ViewModel is created (app start)
         // We use a separate context/scope if needed, but viewModelScope is fine.
@@ -61,8 +66,9 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = combine(
         repository.allScreenshots,
         _isAutoArchiveEnabled,
-        _isCleanupPaused
-    ) { screenshots, isAutoEnabled, isPaused ->
+        _isCleanupPaused,
+        _latestVersion
+    ) { screenshots, isAutoEnabled, isPaused, latestVer ->
         var archived = 0
         var kept = 0
         var deleted = 0
@@ -88,7 +94,8 @@ class HomeViewModel(
             deletedBytes = deletedBytes,
             pendingCount = pending,
             isAutoArchiveEnabled = isAutoEnabled,
-            isCleanupPaused = isPaused
+            isCleanupPaused = isPaused,
+            latestVersion = latestVer
         )
     }.stateIn(
         scope = viewModelScope,
@@ -123,6 +130,17 @@ class HomeViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
+
+    fun dismissUpdateDialog() {
+        _latestVersion.value = null
+    }
+
+    fun checkForUpdates(context: Context) {
+        viewModelScope.launch {
+            val latest = UpdateManager(context).checkForUpdates()
+            _latestVersion.value = latest
+        }
+    }
 
     fun archiveScreenshot(uri: String) {
         viewModelScope.launch {

@@ -39,9 +39,18 @@ class ScreenshotNotificationManager(private val context: Context) {
             ).apply {
                 description = "Keeps screenshot detection active in the background"
             }
+
+            val updateChannel = NotificationChannel(
+                AppConstants.NOTIFICATION_UPDATE_CHANNEL_ID,
+                AppConstants.NOTIFICATION_UPDATE_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications for new app versions"
+            }
             
             notificationManager.createNotificationChannel(mainChannel)
             notificationManager.createNotificationChannel(serviceChannel)
+            notificationManager.createNotificationChannel(updateChannel)
         }
     }
 
@@ -181,6 +190,33 @@ class ScreenshotNotificationManager(private val context: Context) {
 
         try {
             notificationManager.notify(AppConstants.NOTIFICATION_CLEANUP_ID, builder.build())
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Missing POST_NOTIFICATIONS permission", e)
+        }
+    }
+
+    fun showUpdateNotification(latestVersion: String) {
+        Log.d(TAG, "Showing update notification for version: $latestVersion")
+
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(AppConstants.GITHUB_REPO_URL + "/releases/latest"))
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            5,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_UPDATE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_name)
+            .setContentTitle("Update Available")
+            .setContentText("A new version $latestVersion of Sshot is available.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .addAction(android.R.drawable.ic_menu_upload, "Update Now", pendingIntent)
+
+        try {
+            notificationManager.notify(AppConstants.NOTIFICATION_UPDATE_ID, builder.build())
         } catch (e: SecurityException) {
             Log.e(TAG, "Missing POST_NOTIFICATIONS permission", e)
         }

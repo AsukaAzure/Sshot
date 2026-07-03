@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -41,6 +42,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.viewmodel.HomeEvent
 import dev.sj010.ssjanitor.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
@@ -54,6 +56,36 @@ fun HomeScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val nextCleanupTime by viewModel.nextCleanupTimeMillis.collectAsState()
+
+    // ── Update Check ────────────────────────────────────────────────────────
+    LaunchedEffect(Unit) {
+        viewModel.checkForUpdates(context)
+    }
+
+    if (uiState.latestVersion != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.dismissUpdateDialog() },
+            title = { Text("Update Available") },
+            text = { Text("A new version (${uiState.latestVersion}) is available on GitHub. Would you like to update now?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        Uri.parse(AppConstants.GITHUB_REPO_URL + "/releases/latest")
+                    )
+                    context.startActivity(intent)
+                    viewModel.dismissUpdateDialog()
+                }) {
+                    Text("Update")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissUpdateDialog() }) {
+                    Text("Later")
+                }
+            }
+        )
+    }
 
     var hasNotificationPermission by remember {
         mutableStateOf(
