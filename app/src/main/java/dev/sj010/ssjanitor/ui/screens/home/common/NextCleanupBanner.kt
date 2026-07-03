@@ -68,7 +68,9 @@ import java.util.Locale
 @Composable
 fun NextCleanupBanner(
     timeMillis: Long,
+    isPaused: Boolean,
     onRunNow: () -> Unit,
+    onTogglePause: () -> Unit,
     onReschedule: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -150,8 +152,10 @@ fun NextCleanupBanner(
     )
 
     val totalRotation = rotation + animClickRotation
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-    val onTertiaryColor = MaterialTheme.colorScheme.onTertiary
+    val tertiaryColor = if (isPaused) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    val onTertiaryColor = if (isPaused) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onTertiary
+    val containerColor = if (isPaused) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
+    val contentColor = if (isPaused) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
 
     Box(
         modifier = modifier.fillMaxWidth(),
@@ -159,7 +163,7 @@ fun NextCleanupBanner(
     ) {
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                containerColor = containerColor
             ),
             shape = RoundedCornerShape(28.dp),
             modifier = Modifier.fillMaxWidth()
@@ -178,26 +182,26 @@ fun NextCleanupBanner(
                 Icon(
                     imageVector = Icons.Default.AutoDelete,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    tint = contentColor,
                     modifier = Modifier.size(24.dp)
                 )
                 Column {
                     Text(
-                        text = "Next Scheduled Cleanup",
+                        text = if (isPaused) "Cleanup Paused" else "Next Scheduled Cleanup",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = contentColor
                     )
                     val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
                     Text(
-                        text = sdf.format(Date(timeMillis)),
+                        text = if (isPaused) "Automatic cleanup is disabled" else sdf.format(Date(timeMillis)),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                        color = contentColor.copy(alpha = 0.8f)
                     )
                     Text(
                         text = "Tap to change time",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.55f)
+                        color = contentColor.copy(alpha = 0.55f)
                     )
                 }
             }
@@ -211,7 +215,7 @@ fun NextCleanupBanner(
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     clickRotation += 360f
-                    onRunNow()
+                    onTogglePause()
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -228,21 +232,64 @@ fun NextCleanupBanner(
             )
 
             Canvas(modifier = Modifier.size(24.dp)) {
-                val path = Path().apply {
-                    moveTo(size.width * 0.35f, size.height * 0.23f)
-                    lineTo(size.width * 0.35f, size.height * 0.77f)
-                    lineTo(size.width * 0.78f, size.height * 0.5f)
-                    close()
-                }
-                drawIntoCanvas { canvas ->
-                    val paint = Paint().apply {
-                        color = onTertiaryColor
-                        pathEffect = PathEffect.cornerPathEffect(4.dp.toPx())
+                if (isPaused) {
+                    // Draw Play icon (triangle) when paused to "resume/play"
+                    val path = Path().apply {
+                        moveTo(size.width * 0.35f, size.height * 0.23f)
+                        lineTo(size.width * 0.35f, size.height * 0.77f)
+                        lineTo(size.width * 0.78f, size.height * 0.5f)
+                        close()
                     }
-                    canvas.drawPath(
-                        path = path,
-                        paint = paint
-                    )
+                    drawIntoCanvas { canvas ->
+                        val paint = Paint().apply {
+                            color = onTertiaryColor
+                            pathEffect = PathEffect.cornerPathEffect(4.dp.toPx())
+                        }
+                        canvas.drawPath(path = path, paint = paint)
+                    }
+                } else {
+                    // Draw Pause icon (two vertical bars) when playing
+                    val barWidth = size.width * 0.2f
+                    val barHeight = size.height * 0.55f
+                    val spacing = size.width * 0.15f
+                    
+                    val leftBarX = (size.width - (barWidth * 2 + spacing)) / 2
+                    val barsY = (size.height - barHeight) / 2
+                    
+                    drawIntoCanvas { canvas ->
+                        val paint = Paint().apply {
+                            color = onTertiaryColor
+                            pathEffect = PathEffect.cornerPathEffect(2.dp.toPx())
+                        }
+                        
+                        // Left bar
+                        val leftPath = Path().apply {
+                            addRoundRect(
+                                androidx.compose.ui.geometry.RoundRect(
+                                    left = leftBarX,
+                                    top = barsY,
+                                    right = leftBarX + barWidth,
+                                    bottom = barsY + barHeight,
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+                                )
+                            )
+                        }
+                        canvas.drawPath(leftPath, paint)
+                        
+                        // Right bar
+                        val rightPath = Path().apply {
+                            addRoundRect(
+                                androidx.compose.ui.geometry.RoundRect(
+                                    left = leftBarX + barWidth + spacing,
+                                    top = barsY,
+                                    right = leftBarX + barWidth + spacing + barWidth,
+                                    bottom = barsY + barHeight,
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+                                )
+                            )
+                        }
+                        canvas.drawPath(rightPath, paint)
+                    }
                 }
             }
         }

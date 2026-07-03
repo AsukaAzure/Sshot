@@ -30,9 +30,11 @@ fun PermissionWarningSection(
     hasStoragePermission: Boolean,
     isAllFilesManager: Boolean,
     isBatteryOptDisabled: Boolean,
+    canDrawOverlays: Boolean,
     onRequestPermissions: () -> Unit,
     onRequestAllFilesAccess: () -> Unit,
     onRequestDisableBatteryOpt: () -> Unit,
+    onRequestOverlayPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -40,13 +42,15 @@ fun PermissionWarningSection(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // ── Permission warning card ──────────────────────────────────────
-        if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager) {
+        if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager || !canDrawOverlays) {
             PermissionWarningCard(
                 hasNotificationPermission = hasNotificationPermission,
                 hasStoragePermission = hasStoragePermission,
                 isAllFilesManager = isAllFilesManager,
+                canDrawOverlays = canDrawOverlays,
                 onRequestPermissions = onRequestPermissions,
-                onRequestAllFilesAccess = onRequestAllFilesAccess
+                onRequestAllFilesAccess = onRequestAllFilesAccess,
+                onRequestOverlayPermission = onRequestOverlayPermission
             )
         }
 

@@ -90,6 +90,10 @@ fun HomeScreen(
         )
     }
 
+    var canDrawOverlays by remember {
+        mutableStateOf(android.provider.Settings.canDrawOverlays(context))
+    }
+
     // ── Reconciliation ───────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
         viewModel.reconcileDatabase(context)
@@ -107,6 +111,7 @@ fun HomeScreen(
                 isBatteryOptDisabled =
                     (context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager)
                         ?.isIgnoringBatteryOptimizations(context.packageName) == true
+                canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
             }
         })
     }
@@ -151,6 +156,12 @@ fun HomeScreen(
         isBatteryOptDisabled =
             (context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager)
                 ?.isIgnoringBatteryOptimizations(context.packageName) == true
+    }
+
+    val overlayPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
     }
 
     // ── Scroll-aware TopAppBar ────────────────────────────────────────────────
@@ -210,6 +221,7 @@ fun HomeScreen(
             hasStoragePermission = hasStoragePermission,
             isAllFilesManager = isAllFilesManager,
             isBatteryOptDisabled = isBatteryOptDisabled,
+            canDrawOverlays = canDrawOverlays,
             onRequestPermissions = {
                 val list = mutableListOf<String>()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
@@ -238,7 +250,15 @@ fun HomeScreen(
                 }
                 batteryOptLauncher.launch(intent)
             },
+            onRequestOverlayPermission = {
+                val intent = android.content.Intent(
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}")
+                )
+                overlayPermissionLauncher.launch(intent)
+            },
             onRunCleanup = { viewModel.runCleanupNow(context) },
+            onTogglePause = { viewModel.toggleCleanupPause() },
             onReschedule = { hour, minute -> viewModel.rescheduleCleanup(hour, minute, context) },
             onArchive = { viewModel.archiveScreenshot(it) },
             onKeep = { viewModel.keepScreenshot(it) },

@@ -14,4 +14,12 @@ class SettingsRepository(context: Context) {
     fun setAutoArchiveEnabled(enabled: Boolean) {
         prefs.edit { putBoolean(AppConstants.PREF_AUTO_ARCHIVE, enabled) }
     }
+
+    fun isCleanupPaused(): Boolean {
+        return prefs.getBoolean(AppConstants.PREF_CLEANUP_PAUSED, true)
+    }
+
+    fun setCleanupPaused(paused: Boolean) {
+        prefs.edit { putBoolean(AppConstants.PREF_CLEANUP_PAUSED, paused) }
+    }
 }

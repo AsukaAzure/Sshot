@@ -62,10 +62,13 @@ fun HomeContent(
     hasStoragePermission: Boolean,
     isAllFilesManager: Boolean,
     isBatteryOptDisabled: Boolean,
+    canDrawOverlays: Boolean,
     onRequestPermissions: () -> Unit,
     onRequestAllFilesAccess: () -> Unit,
     onRequestDisableBatteryOpt: () -> Unit,
+    onRequestOverlayPermission: () -> Unit,
     onRunCleanup: () -> Unit,
+    onTogglePause: () -> Unit,
     onReschedule: (Int, Int) -> Unit,
     onArchive: (String) -> Unit,
     onKeep: (String) -> Unit,
@@ -124,16 +127,18 @@ fun HomeContent(
     ) {
 
         // ── Permission warnings ─────────────────────────────────────────────
-        if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager || !isBatteryOptDisabled) {
+        if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager || !isBatteryOptDisabled || !canDrawOverlays) {
             item(key = "permission_section") {
                 PermissionWarningSection(
                     hasNotificationPermission = hasNotificationPermission,
                     hasStoragePermission = hasStoragePermission,
                     isAllFilesManager = isAllFilesManager,
                     isBatteryOptDisabled = isBatteryOptDisabled,
+                    canDrawOverlays = canDrawOverlays,
                     onRequestPermissions = onRequestPermissions,
                     onRequestAllFilesAccess = onRequestAllFilesAccess,
                     onRequestDisableBatteryOpt = onRequestDisableBatteryOpt,
+                    onRequestOverlayPermission = onRequestOverlayPermission,
                     modifier = Modifier.animateItem(
                         placementSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -171,7 +176,9 @@ fun HomeContent(
             item(key = "cleanup_banner") {
                 NextCleanupBanner(
                     timeMillis = nextCleanupTime,
+                    isPaused = uiState.isCleanupPaused,
                     onRunNow = onRunCleanup,
+                    onTogglePause = onTogglePause,
                     onReschedule = onReschedule
                 )
             }

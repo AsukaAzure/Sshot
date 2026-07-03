@@ -30,8 +30,10 @@ fun PermissionWarningCard(
     hasNotificationPermission: Boolean,
     hasStoragePermission: Boolean,
     isAllFilesManager: Boolean,
+    canDrawOverlays: Boolean,
     onRequestPermissions: () -> Unit,
-    onRequestAllFilesAccess: () -> Unit
+    onRequestAllFilesAccess: () -> Unit,
+    onRequestOverlayPermission: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -60,11 +62,12 @@ fun PermissionWarningCard(
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
-            val message = remember(hasStoragePermission, hasNotificationPermission, isAllFilesManager) {
+            val message = remember(hasStoragePermission, hasNotificationPermission, isAllFilesManager, canDrawOverlays) {
                 buildString {
                     append("The app needs permissions to function properly:\n")
                     if (!hasStoragePermission) append("• Read Media Images (to detect screenshots)\n")
                     if (!hasNotificationPermission) append("• Post Notifications (to show quick action options)\n")
+                    if (!canDrawOverlays) append("• Display over other apps (to show the action overlay when you take a screenshot)\n")
                     if (!isAllFilesManager && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         append("• All Files Access (needed for AUTOMATIC background cleanup of system screenshots)\n")
                     }
@@ -81,6 +84,11 @@ fun PermissionWarningCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (!canDrawOverlays) {
+                    TextButton(onClick = onRequestOverlayPermission) {
+                        Text("Overlay", fontWeight = FontWeight.Bold)
+                    }
+                }
                 if (!isAllFilesManager && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     TextButton(onClick = onRequestAllFilesAccess) {
                         Text("All Files Access", fontWeight = FontWeight.Bold)

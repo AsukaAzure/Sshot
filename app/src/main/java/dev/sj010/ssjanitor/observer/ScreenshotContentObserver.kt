@@ -12,13 +12,15 @@ import dev.sj010.ssjanitor.data.db.AppDatabase
 import dev.sj010.ssjanitor.data.db.entity.ScreenshotEntity
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
-import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
+import dev.sj010.ssjanitor.ui.overlay.ScreenshotOverlayActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
 import java.util.Collections
+import android.content.Intent
+import dev.sj010.ssjanitor.core.constants.AppConstants
 
 class ScreenshotContentObserver(
     private val context: Context,
@@ -28,7 +30,6 @@ class ScreenshotContentObserver(
 
     private val database by lazy { AppDatabase.getDatabase(context) }
     private val repository by lazy { ScreenshotRepository(database.screenshotDao()) }
-    private val notificationManager by lazy { ScreenshotNotificationManager(context) }
 
     private val processedUris = Collections.synchronizedSet(mutableSetOf<String>())
     private val pendingUris = Collections.synchronizedSet(mutableSetOf<String>())
@@ -299,10 +300,7 @@ class ScreenshotContentObserver(
      */
     private suspend fun handleNewScreenshot(uriString: String, fileName: String, createdAt: Long) {
         val existing = repository.getScreenshotByUri(uriString)
-        if (existing != null) {
-            return
-        }
-
+        
         val uri = Uri.parse(uriString)
         val fileSize = try {
             context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
@@ -310,6 +308,12 @@ class ScreenshotContentObserver(
             } ?: 0L
         } catch (_: Exception) {
             0L
+        }
+
+        if (existing != null) {
+            // Update existing record with file size and potentially other missing info
+            repository.updateScreenshot(existing.copy(fileSize = fileSize))
+            return
         }
 
         val isAutoArchive = settingsRepository.isAutoArchiveEnabled()
@@ -322,7 +326,22 @@ class ScreenshotContentObserver(
             deleted = false
         )
         repository.insertScreenshot(entity)
-        notificationManager.showScreenshotNotification(uriString, isAutoArchive)
+        
+        // Show notification (existing behavior)
+        // notificationManager.showScreenshotNotification(uriString, isAutoArchive)
+        
+        // Launch overlay activity if not auto-archived
+        if (!isAutoArchive) {
+            val intent = Intent(context, ScreenshotOverlayActivity::class.java).apply {
+                putExtra(AppConstants.EXTRA_SCREENSHOT_URI, uriString)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to launch overlay activity", e)
+            }
+        }
     }
 
     // ---------------------------------------------------------------------

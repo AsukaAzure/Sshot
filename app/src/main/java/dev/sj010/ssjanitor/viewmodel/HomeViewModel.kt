@@ -35,7 +35,8 @@ data class HomeUiState(
     val deletedCount: Int = 0,
     val deletedBytes: Long = 0L,
     val pendingCount: Int = 0,
-    val isAutoArchiveEnabled: Boolean = false
+    val isAutoArchiveEnabled: Boolean = false,
+    val isCleanupPaused: Boolean = false
 )
 
 class HomeViewModel(
@@ -47,6 +48,9 @@ class HomeViewModel(
     private val _isAutoArchiveEnabled = MutableStateFlow(settingsRepository.isAutoArchiveEnabled())
     val isAutoArchiveEnabled = _isAutoArchiveEnabled.asStateFlow()
 
+    private val _isCleanupPaused = MutableStateFlow(settingsRepository.isCleanupPaused())
+    val isCleanupPaused = _isCleanupPaused.asStateFlow()
+
     init {
         // Run reconciliation when ViewModel is created (app start)
         // We use a separate context/scope if needed, but viewModelScope is fine.
@@ -56,8 +60,9 @@ class HomeViewModel(
 
     val uiState: StateFlow<HomeUiState> = combine(
         repository.allScreenshots,
-        _isAutoArchiveEnabled
-    ) { screenshots, isAutoEnabled ->
+        _isAutoArchiveEnabled,
+        _isCleanupPaused
+    ) { screenshots, isAutoEnabled, isPaused ->
         var archived = 0
         var kept = 0
         var deleted = 0
@@ -82,7 +87,8 @@ class HomeViewModel(
             deletedCount = deleted,
             deletedBytes = deletedBytes,
             pendingCount = pending,
-            isAutoArchiveEnabled = isAutoEnabled
+            isAutoArchiveEnabled = isAutoEnabled,
+            isCleanupPaused = isPaused
         )
     }.stateIn(
         scope = viewModelScope,
@@ -97,6 +103,12 @@ class HomeViewModel(
         // We might need to refresh uiState if it doesn't observe settingsRepository
         // Actually uiState map above re-reads it, but it might not trigger on change.
         // For simplicity, we can just rely on isAutoArchiveEnabled flow for UI feedback.
+    }
+
+    fun toggleCleanupPause() {
+        val newValue = !settingsRepository.isCleanupPaused()
+        settingsRepository.setCleanupPaused(newValue)
+        _isCleanupPaused.value = newValue
     }
 
     val nextCleanupTimeMillis: StateFlow<Long?> = workManager.getWorkInfosForUniqueWorkFlow("ScreenshotCleanupWork")
@@ -147,12 +159,12 @@ class HomeViewModel(
 
     fun runCleanupNow(context: Context) {
         viewModelScope.launch {
-            // Cleanup targets only archived screenshots (not kept, not already deleted)
-            val archivedScreenshots = repository.getArchivedForCleanup()
-            if (archivedScreenshots.isNotEmpty()) {
-                pendingUrisToDelete = archivedScreenshots.map { it.uri }
+            // Cleanup targets archived screenshots OR those whose scheduled time has passed
+            val screenshotsToCleanup = repository.getScreenshotsForCleanup()
+            if (screenshotsToCleanup.isNotEmpty()) {
+                pendingUrisToDelete = screenshotsToCleanup.map { it.uri }
                 val result = repository.deleteScreenshots(context, pendingUrisToDelete)
-            if (result is dev.sj010.ssjanitor.data.repository.DeleteResult.RequiresPermission) {
+                if (result is dev.sj010.ssjanitor.data.repository.DeleteResult.RequiresPermission) {
                     _events.emit(HomeEvent.RequestDeletePermission(result.intentSender))
                 }
             }

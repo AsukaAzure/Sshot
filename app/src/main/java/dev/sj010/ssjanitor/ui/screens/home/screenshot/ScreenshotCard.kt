@@ -91,6 +91,29 @@ fun ScreenshotCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    if (screenshot.deleteAt != null && !screenshot.deleted && !screenshot.kept) {
+                        val deleteFormatted = remember(screenshot.deleteAt) {
+                            dateFormatter.format(Date(screenshot.deleteAt))
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Delete at: $deleteFormatted",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)

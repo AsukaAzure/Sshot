@@ -12,5 +12,7 @@ data class ScreenshotEntity(
     val archived: Boolean = false,
     val deleted: Boolean = false,
     val kept: Boolean = false,
-    val fileSize: Long = 0L
+    val fileSize: Long = 0L,
+    val deleteAt: Long? = null,
+    val shareAndDeleteAtNight: Boolean = false
 )

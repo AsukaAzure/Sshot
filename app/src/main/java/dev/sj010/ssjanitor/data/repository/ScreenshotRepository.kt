@@ -12,6 +12,12 @@ import kotlinx.coroutines.withContext
 
 import android.content.IntentSender
 import android.provider.MediaStore
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import dev.sj010.ssjanitor.worker.ScreenshotCleanupWorker
+import java.util.concurrent.TimeUnit
 
 sealed class DeleteResult {
     object Success : DeleteResult()
@@ -142,9 +148,54 @@ class ScreenshotRepository(private val screenshotDao: ScreenshotDao) {
     }
 
 
-    /** Returns all archived screenshots that are not kept and not yet deleted — targets for janitor. */
+    /** Returns all screenshots that are ready for cleanup (archived or scheduled). */
+    suspend fun getScreenshotsForCleanup(): List<ScreenshotEntity> = withContext(Dispatchers.IO) {
+        screenshotDao.getScreenshotsForCleanup(System.currentTimeMillis())
+    }
+
+    /** Returns all screenshots that are specifically marked as archived and ready for cleanup. */
     suspend fun getArchivedForCleanup(): List<ScreenshotEntity> = withContext(Dispatchers.IO) {
         screenshotDao.getArchivedForCleanup()
+    }
+
+    suspend fun scheduleDeletion(context: Context, uri: String, deleteAt: Long, shareAndDeleteAtNight: Boolean = false) = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Scheduling deletion for $uri at $deleteAt")
+        val entity = screenshotDao.getScreenshotByUri(uri)
+        if (entity != null) {
+            screenshotDao.updateScreenshot(entity.copy(deleteAt = deleteAt, shareAndDeleteAtNight = shareAndDeleteAtNight))
+        } else {
+            screenshotDao.insertScreenshot(
+                ScreenshotEntity(
+                    uri = uri,
+                    fileName = Uri.parse(uri).lastPathSegment ?: "Unknown",
+                    createdAt = System.currentTimeMillis(),
+                    deleteAt = deleteAt,
+                    shareAndDeleteAtNight = shareAndDeleteAtNight
+                )
+            )
+        }
+
+        // Schedule WorkManager to run at the deletion time
+        scheduleWorkManagerCleanup(context, deleteAt, uri)
+    }
+
+    private fun scheduleWorkManagerCleanup(context: Context, deleteAt: Long, uri: String) {
+        val delay = deleteAt - System.currentTimeMillis()
+        val constraints = Constraints.Builder()
+            .setRequiresBatteryNotLow(true)
+            .setRequiresStorageNotLow(true)
+            .build()
+
+        val workRequest = OneTimeWorkRequestBuilder<ScreenshotCleanupWorker>()
+            .setInitialDelay(delay.coerceAtLeast(0), TimeUnit.MILLISECONDS)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "cleanup_$uri",
+            ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
     }
 
     /**

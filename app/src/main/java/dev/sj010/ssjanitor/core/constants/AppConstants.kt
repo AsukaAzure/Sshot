@@ -20,5 +20,6 @@ object AppConstants {
 
     const val PREF_NAME = "ssjanitor_prefs"
     const val PREF_AUTO_ARCHIVE = "pref_auto_archive"
+    const val PREF_CLEANUP_PAUSED = "pref_cleanup_paused"
 }
 
