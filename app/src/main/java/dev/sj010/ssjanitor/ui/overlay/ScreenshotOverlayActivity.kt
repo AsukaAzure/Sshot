@@ -5,7 +5,10 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -27,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.data.db.AppDatabase
+import dev.sj010.ssjanitor.data.repository.DeleteResult
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.ui.theme.SshotTheme
 import kotlinx.coroutines.delay
@@ -75,6 +79,19 @@ class ScreenshotOverlayActivity : ComponentActivity() {
         
         var isVisible by remember { mutableStateOf(false) }
         var actionTaken by remember { mutableStateOf(false) }
+
+        val intentSenderLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                scope.launch {
+                    repository.markAsDeleted(listOf(uriString))
+                    isVisible = false
+                    delay(300)
+                    onAction()
+                }
+            }
+        }
         
         val dismissOverlay = {
             scope.launch {
@@ -249,8 +266,22 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                                 onClick = {
                                     scope.launch {
                                         actionTaken = true
-                                        repository.deleteScreenshot(context, uriString)
-                                        dismissOverlay()
+                                        val result = repository.deleteScreenshot(context, uriString)
+                                        when (result) {
+                                            is DeleteResult.RequiresPermission -> {
+                                                intentSenderLauncher.launch(
+                                                    IntentSenderRequest.Builder(result.intentSender).build()
+                                                )
+                                            }
+                                            is DeleteResult.Success -> {
+                                                repository.markAsDeleted(listOf(uriString))
+                                                dismissOverlay()
+                                            }
+                                            is DeleteResult.Failed -> {
+                                                android.util.Log.e("ScreenshotOverlay", "Delete failed", result.error)
+                                                dismissOverlay()
+                                            }
+                                        }
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
