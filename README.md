@@ -25,7 +25,7 @@ Sshot monitors newly created screenshots, lets you archive or delete them throug
 
 ## Install
 
-[![GitHub Release](https://img.shields.io/github/v/release/ShubhamJ010/ScreenshotJanitor?style=for-the-badge&logo=github&color=blue)](https://github.com/ShubhamJ010/ScreenshotJanitor/releases/latest)
+[![GitHub Release](https://img.shields.io/github/v/release/asukaAzure/Sshot?style=for-the-badge&logo=github&color=blue)](https://github.com/asukaAzure/Sshot/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 ## Screenshots
