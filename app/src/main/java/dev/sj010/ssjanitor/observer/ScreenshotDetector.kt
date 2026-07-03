@@ -2,7 +2,7 @@ package dev.sj010.ssjanitor.observer
 
 import android.content.Context
 import android.provider.MediaStore
-import dev.sj010.ssjanitor.SsJanitorApp
+import dev.sj010.ssjanitor.SshotApp
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
 
 class ScreenshotDetector(private val context: Context, private val settingsRepository: SettingsRepository) {
@@ -19,7 +19,7 @@ class ScreenshotDetector(private val context: Context, private val settingsRepos
             observer
         )
         contentObserver = observer
-        val app = context.applicationContext as SsJanitorApp
+        val app = context.applicationContext as SshotApp
         app.contentObserver = observer
 
         // Scan for screenshots captured during process startup (before the
@@ -31,7 +31,7 @@ class ScreenshotDetector(private val context: Context, private val settingsRepos
         contentObserver?.let {
             context.contentResolver.unregisterContentObserver(it)
             contentObserver = null
-            val app = context.applicationContext as SsJanitorApp
+            val app = context.applicationContext as SshotApp
             app.contentObserver = null
         }
     }

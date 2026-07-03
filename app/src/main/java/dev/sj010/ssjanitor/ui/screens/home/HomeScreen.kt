@@ -190,13 +190,7 @@ fun HomeScreen(
                         )
                         Row {
                             Text(
-                                text = "Screenshot ",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Janitor",
+                                text = "Sshot",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.primary

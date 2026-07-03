@@ -16,7 +16,7 @@ import dev.sj010.ssjanitor.service.ScreenshotDetectionService
 import dev.sj010.ssjanitor.worker.ScreenshotCleanupWorker
 import java.util.concurrent.TimeUnit
 
-class SsJanitorApp : Application() {
+class SshotApp : Application() {
 
     val database: AppDatabase by lazy { AppDatabase.getDatabase(this) }
     val repository: ScreenshotRepository by lazy { ScreenshotRepository(database.screenshotDao()) }

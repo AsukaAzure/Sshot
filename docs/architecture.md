@@ -1,6 +1,6 @@
 # Architecture
 
-ssJanitor follows **MVVM-lite** — a lightweight Model-View-ViewModel pattern without heavy DI frameworks.
+Sshot follows **MVVM-lite** — a lightweight Model-View-ViewModel pattern without heavy DI frameworks.
 
 ## Diagram
 
@@ -16,7 +16,7 @@ flowchart
     I[ScreenshotDetectionService]
     J[BootReceiver]
     K[NotificationActionReceiver]
-    L[SsJanitorApp]
+    L[SshotApp]
 
     A <--> B
     B <--> C
@@ -43,7 +43,7 @@ flowchart
 - **SettingsRepository** — Manages preferences (auto-archive toggle) via DataStore.
 
 ### Background & System
-- **SsJanitorApp** — Application class holding shared references (database, repository, contentObserver) initialized via `by lazy` for thread safety.
+- **SshotApp** — Application class holding shared references (database, repository, contentObserver) initialized via `by lazy` for thread safety.
 - **ScreenshotDetectionService** — Foreground service that hosts `ScreenshotDetector`, keeping the process alive for reliable MediaStore observation.
 - **BootReceiver** — `BroadcastReceiver` for `BOOT_COMPLETED` that restarts the detection service after device reboot.
 - **ScreenshotDetector** — Wraps `ScreenshotContentObserver`, registered on `MediaStore.Images.Media.EXTERNAL_CONTENT_URI`. Filters new images by screenshot naming conventions.

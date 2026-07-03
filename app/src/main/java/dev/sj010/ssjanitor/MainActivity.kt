@@ -14,14 +14,14 @@ import androidx.compose.ui.Modifier
 import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
 import dev.sj010.ssjanitor.ui.screens.home.HomeScreen
-import dev.sj010.ssjanitor.ui.theme.SsJanitorTheme
+import dev.sj010.ssjanitor.ui.theme.SshotTheme
 import dev.sj010.ssjanitor.viewmodel.HomeViewModel
 import dev.sj010.ssjanitor.viewmodel.HomeViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: HomeViewModel by viewModels {
-        val app = application as SsJanitorApp
+        val app = application as SshotApp
         HomeViewModelFactory(
             app.repository,
             app.settingsRepository,
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         handleIntent(intent)
         setContent {
-            SsJanitorTheme {
+            SshotTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

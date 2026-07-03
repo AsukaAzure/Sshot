@@ -1,4 +1,4 @@
-ssJanitor monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule.
+Sshot monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule.
 
 Features:
 • Screenshot Detection — URI-based detection via MediaStore ContentObserver with cold-start initial scan, exponential-backoff retry, IS_PENDING column filtering, and fallback scan for edge cases.

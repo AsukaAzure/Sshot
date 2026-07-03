@@ -3,7 +3,7 @@ package dev.sj010.ssjanitor.worker
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import dev.sj010.ssjanitor.SsJanitorApp
+import dev.sj010.ssjanitor.SshotApp
 import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
 
 class ScreenshotCleanupWorker(
@@ -12,7 +12,7 @@ class ScreenshotCleanupWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val app = applicationContext as SsJanitorApp
+        val app = applicationContext as SshotApp
         if (app.settingsRepository.isCleanupPaused()) {
             return Result.success()
         }
@@ -36,7 +36,7 @@ class ScreenshotCleanupWorker(
                     nm.showCleanupNotification(failed)
                 }
             }
-            val app = applicationContext as SsJanitorApp
+            val app = applicationContext as SshotApp
             app.contentObserver?.clearProcessedUris()
             Result.success()
         } catch (e: Exception) {

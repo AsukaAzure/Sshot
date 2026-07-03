@@ -28,7 +28,7 @@ import androidx.lifecycle.lifecycleScope
 import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.data.db.AppDatabase
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
-import dev.sj010.ssjanitor.ui.theme.SsJanitorTheme
+import dev.sj010.ssjanitor.ui.theme.SshotTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -49,7 +49,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
         }
 
         setContent {
-            SsJanitorTheme {
+            SshotTheme {
                 OverlayContent(
                     uriString = uriString,
                     onAction = { finish() },

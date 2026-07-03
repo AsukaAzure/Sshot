@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="screenshots/app_icon.png" alt="ssJanitor" width="96" height="96"/>
-  <h1>ssJanitor</h1>
+  <img src="screenshots/app_icon.png" alt="Sshot" width="96" height="96"/>
+  <h1>Sshot</h1>
   <p>Minimal Android 14+ screenshot management utility</p>
   <p>
     <strong>Kotlin</strong> · <strong>Jetpack Compose</strong> · <strong>Material 3</strong>
@@ -17,7 +17,7 @@
 
 ---
 
-ssJanitor monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule. Intentionally lightweight, battery-friendly, and aligned with modern Android storage and background execution policies.
+Sshot monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule. Intentionally lightweight, battery-friendly, and aligned with modern Android storage and background execution policies.
 
 ## Install
 

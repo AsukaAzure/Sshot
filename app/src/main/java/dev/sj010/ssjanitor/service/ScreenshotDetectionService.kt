@@ -5,7 +5,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import dev.sj010.ssjanitor.SsJanitorApp
+import dev.sj010.ssjanitor.SshotApp
 import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
 import dev.sj010.ssjanitor.observer.ScreenshotDetector
@@ -17,7 +17,7 @@ class ScreenshotDetectionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val app = application as SsJanitorApp
+        val app = application as SshotApp
         detector = ScreenshotDetector(this, app.settingsRepository)
 
         val nm = ScreenshotNotificationManager(this)

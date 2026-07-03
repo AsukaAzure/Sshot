@@ -10,7 +10,7 @@
       can resolve them on all API levels. Android 12+ overrides them with
       wallpaper-derived values for Material You icon theming.
     -->
-    <style name="Theme.ssJanitor" parent="Theme.SplashScreen">
+    <style name="Theme.Sshot" parent="Theme.SplashScreen">
         <!-- Material You icon colors (fallback values for pre-Android 12) -->
         <item name="colorPrimary">#006E6D</item>
         <item name="colorOnPrimary">#FFFFFF</item>
@@ -21,7 +21,7 @@
         <item name="windowSplashScreenIconBackgroundColor">?attr/colorPrimary</item>
         <item name="windowSplashScreenAnimationDuration">400</item>
         <!-- After splash, Compose takes over theming -->
-        <item name="postSplashScreenTheme">@style/Theme.ssJanitor.Main</item>
+        <item name="postSplashScreenTheme">@style/Theme.Sshot.Main</item>
         <!--
           Override the platform splash background to use the system's
           colorBackground (which is Material You dynamic on Android 12+).
@@ -31,9 +31,9 @@
     </style>
 
     <!-- Post-splash theme: DeviceDefault picks up Material You dynamic colors -->
-    <style name="Theme.ssJanitor.Main" parent="android:Theme.DeviceDefault.Light.NoActionBar" />
+    <style name="Theme.Sshot.Main" parent="android:Theme.DeviceDefault.Light.NoActionBar" />
 
-    <style name="Theme.ssJanitor.Overlay" parent="android:Theme.DeviceDefault.NoActionBar">
+    <style name="Theme.Sshot.Overlay" parent="android:Theme.DeviceDefault.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowAnimationStyle">@null</item>
