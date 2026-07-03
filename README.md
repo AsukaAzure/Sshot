@@ -16,6 +16,7 @@
 </div>
 
 ---
+It is a forked project from <a href="https://github.com/ShubhamJ010/ScreenshotJanitor">ShubhamJ010/ScreenshotJanitor</a>
 
 Sshot monitors newly created screenshots, lets you archive or delete them through lightweight notifications, and automatically cleans up unarchived screenshots on a schedule. Intentionally lightweight, battery-friendly, and aligned with modern Android storage and background execution policies.
 
