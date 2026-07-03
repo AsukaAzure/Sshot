@@ -57,7 +57,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         )
 
         return NotificationCompat.Builder(context, AppConstants.NOTIFICATION_SERVICE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle("Janitor Active")
             .setContentText("Monitoring for new screenshots...")
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -120,7 +120,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         val text = if (isAutoArchived) "This screenshot will be deleted in the next cleanup. Tap to Keep." else "Choose an action for this screenshot."
 
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -155,7 +155,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         )
 
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle("Cleanup Recommended")
             .setContentText("Found $count old screenshots. Tap to delete them and free up space.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -173,7 +173,7 @@ class ScreenshotNotificationManager(private val context: Context) {
         Log.d(TAG, "Showing auto cleanup notification for $count screenshots")
         
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_name)
             .setContentTitle("Auto Cleanup Complete")
             .setContentText("Successfully auto-deleted $count archived screenshots.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
