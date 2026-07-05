@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.IntOffset
 import dev.sj010.ssjanitor.ui.screens.home.common.EmptyStateView
 import dev.sj010.ssjanitor.ui.screens.home.common.NextCleanupBanner
 import dev.sj010.ssjanitor.ui.screens.home.common.SectionHeader
+import dev.sj010.ssjanitor.ui.screens.home.gesture.PullToHideIndicator
 import dev.sj010.ssjanitor.ui.screens.home.gesture.PullToKeptIndicator
 import dev.sj010.ssjanitor.ui.screens.home.gesture.rememberPullToRevealState
 import dev.sj010.ssjanitor.ui.screens.home.permissions.PermissionWarningSection
@@ -112,6 +113,13 @@ fun HomeContent(
     // Wire up the bottom-detection into the pull-to-reveal gesture
     pullToReveal.setIsAtBottomProvider { isAtBottom }
 
+    val isAtTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+    pullToReveal.setIsAtTopProvider { isAtTop }
+
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -125,6 +133,23 @@ fun HomeContent(
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // ── Pull to Hide Indicator ──────────────────────────────────────
+        if (pullToReveal.showKept) {
+            item(key = "pull_to_hide") {
+                val pullFraction = ((-pullToReveal.pullOffsetAnim.value) / 380f).coerceIn(0f, 1f)
+                val isPulling = pullFraction > 0f
+                
+                if (isPulling || pullToReveal.isReleasing) {
+                    PullToHideIndicator(
+                        pullFraction = pullFraction,
+                        isAtTop = isAtTop,
+                        isPulling = isPulling,
+                        isReleasing = pullToReveal.isReleasing,
+                        modifier = Modifier.animateItem()
+                    )
+                }
+            }
+        }
 
         // ── Permission warnings ─────────────────────────────────────────────
         if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager || !isBatteryOptDisabled || !canDrawOverlays) {

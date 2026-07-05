@@ -41,6 +41,8 @@ class NestedScrollPullToRevealState(
 
     // True once user has scrolled all the way to the bottom of pending+achieved
     private var isAtBottomFn: (() -> Boolean)? = null
+    // True once user has scrolled to the top
+    private var isAtTopFn: (() -> Boolean)? = null
 
     private val pullThreshold = 380f
     private val maxPull = 520f
@@ -52,6 +54,8 @@ class NestedScrollPullToRevealState(
             source: NestedScrollSource
         ): Offset {
             if (isReleasing) isReleasing = false
+
+            // Pull UP to SHOW Kept
             if (!showKept && keptListSize() > 0 && available.y < 0 &&
                 (isAtBottomFn?.invoke() == true) && source == NestedScrollSource.UserInput
             ) {
@@ -68,10 +72,30 @@ class NestedScrollPullToRevealState(
                 }
                 return Offset(0f, available.y)
             }
+
+            // Pull DOWN to HIDE Kept
+            if (showKept && available.y > 0 &&
+                (isAtTopFn?.invoke() == true) && source == NestedScrollSource.UserInput
+            ) {
+                val rawDelta = available.y
+                val currentPull = -pullOffsetAnim.value
+                val resistance = kotlin.math.sqrt(currentPull / maxPull + 0.001f)
+                val damped = rawDelta * (1f - resistance * 0.6f)
+                val target = (pullOffsetAnim.value - damped).coerceIn(-maxPull, 0f)
+                coroutineScope.launch {
+                    pullOffsetAnim.snapTo(target)
+                    if (target <= -pullThreshold && !isHapticTriggered) {
+                        isHapticTriggered = true
+                        performHaptic()
+                    }
+                }
+                return Offset(0f, available.y)
+            }
             return Offset.Zero
         }
 
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            // Undo pull-up
             if (!showKept && keptListSize() > 0 && pullOffsetAnim.value > 0f &&
                 available.y > 0f && source == NestedScrollSource.UserInput
             ) {
@@ -85,17 +109,42 @@ class NestedScrollPullToRevealState(
                 }
                 return Offset(0f, consumed)
             }
+
+            // Undo pull-down
+            if (showKept && pullOffsetAnim.value < 0f &&
+                available.y < 0f && source == NestedScrollSource.UserInput
+            ) {
+                val consumed = available.y.coerceAtLeast(pullOffsetAnim.value)
+                val target = pullOffsetAnim.value - consumed
+                coroutineScope.launch {
+                    pullOffsetAnim.snapTo(target)
+                    if (target > -pullThreshold) {
+                        isHapticTriggered = false
+                    }
+                }
+                return Offset(0f, consumed)
+            }
             return Offset.Zero
         }
 
         override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            if (!showKept && keptListSize() > 0) {
-                if (pullOffsetAnim.value >= pullThreshold) {
-                    showKept = true
-                    performHaptic()
+            if (pullOffsetAnim.value != 0f) {
+                if (!showKept) {
+                    if (pullOffsetAnim.value >= pullThreshold) {
+                        showKept = true
+                        performHaptic()
+                    } else {
+                        isReleasing = true
+                    }
                 } else {
-                    isReleasing = true
+                    if (pullOffsetAnim.value <= -pullThreshold) {
+                        showKept = false
+                        performHaptic()
+                    } else {
+                        isReleasing = true
+                    }
                 }
+
                 pullOffsetAnim.animateTo(
                     targetValue = 0f,
                     animationSpec = spring(
@@ -112,6 +161,10 @@ class NestedScrollPullToRevealState(
 
     fun setIsAtBottomProvider(provider: () -> Boolean) {
         isAtBottomFn = provider
+    }
+
+    fun setIsAtTopProvider(provider: () -> Boolean) {
+        isAtTopFn = provider
     }
 
     fun toggleShowKept() {

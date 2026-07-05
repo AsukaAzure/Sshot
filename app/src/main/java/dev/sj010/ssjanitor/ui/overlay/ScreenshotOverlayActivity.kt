@@ -46,6 +46,8 @@ class ScreenshotOverlayActivity : ComponentActivity() {
         
         val database = AppDatabase.getDatabase(applicationContext)
         repository = ScreenshotRepository(database.screenshotDao())
+        val settingsRepository = dev.sj010.ssjanitor.data.repository.SettingsRepository(applicationContext)
+        val isRightSide = settingsRepository.isOverlayOnRightSide()
 
         val uriString = intent.getStringExtra(AppConstants.EXTRA_SCREENSHOT_URI) ?: run {
             finish()
@@ -57,7 +59,8 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                 OverlayContent(
                     uriString = uriString,
                     onAction = { finish() },
-                    repository = repository
+                    repository = repository,
+                    isRightSide = isRightSide
                 )
             }
         }
@@ -68,7 +71,8 @@ class ScreenshotOverlayActivity : ComponentActivity() {
     fun OverlayContent(
         uriString: String,
         onAction: () -> Unit,
-        repository: ScreenshotRepository
+        repository: ScreenshotRepository,
+        isRightSide: Boolean
     ) {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
@@ -117,16 +121,16 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                 .fillMaxSize()
                 .clickable { dismissOverlay() } // Dismiss on background click
                 .background(Color.Black.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.CenterStart
+            contentAlignment = if (isRightSide) Alignment.CenterEnd else Alignment.CenterStart
         ) {
             AnimatedVisibility(
                 visible = isVisible,
                 enter = slideInHorizontally(
-                    initialOffsetX = { -it },
+                    initialOffsetX = { if (isRightSide) it else -it },
                     animationSpec = tween(durationMillis = 400)
                 ) + fadeIn(),
                 exit = slideOutHorizontally(
-                    targetOffsetX = { -it },
+                    targetOffsetX = { if (isRightSide) it else -it },
                     animationSpec = tween(durationMillis = 300)
                 ) + fadeOut()
             ) {
@@ -135,7 +139,11 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                         .fillMaxHeight(0.5f)
                         .width(280.dp)
                         .clickable(enabled = false) { }, // Prevent clicks from passing through
-                    shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+                    shape = if (isRightSide) {
+                        RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
+                    } else {
+                        RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
+                    },
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),

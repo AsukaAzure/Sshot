@@ -38,6 +38,7 @@ data class HomeUiState(
     val pendingCount: Int = 0,
     val isAutoArchiveEnabled: Boolean = false,
     val isCleanupPaused: Boolean = false,
+    val isOverlayOnRightSide: Boolean = false,
     val latestVersion: String? = null
 )
 
@@ -53,6 +54,9 @@ class HomeViewModel(
     private val _isCleanupPaused = MutableStateFlow(settingsRepository.isCleanupPaused())
     val isCleanupPaused = _isCleanupPaused.asStateFlow()
 
+    private val _isOverlayOnRightSide = MutableStateFlow(settingsRepository.isOverlayOnRightSide())
+    val isOverlayOnRightSide = _isOverlayOnRightSide.asStateFlow()
+
     private val _latestVersion = MutableStateFlow<String?>(null)
     val latestVersion = _latestVersion.asStateFlow()
 
@@ -67,8 +71,9 @@ class HomeViewModel(
         repository.allScreenshots,
         _isAutoArchiveEnabled,
         _isCleanupPaused,
+        _isOverlayOnRightSide,
         _latestVersion
-    ) { screenshots, isAutoEnabled, isPaused, latestVer ->
+    ) { screenshots, isAutoEnabled, isPaused, isOverlayRight, latestVer ->
         var archived = 0
         var kept = 0
         var deleted = 0
@@ -95,6 +100,7 @@ class HomeViewModel(
             pendingCount = pending,
             isAutoArchiveEnabled = isAutoEnabled,
             isCleanupPaused = isPaused,
+            isOverlayOnRightSide = isOverlayRight,
             latestVersion = latestVer
         )
     }.stateIn(
@@ -116,6 +122,12 @@ class HomeViewModel(
         val newValue = !settingsRepository.isCleanupPaused()
         settingsRepository.setCleanupPaused(newValue)
         _isCleanupPaused.value = newValue
+    }
+
+    fun toggleOverlaySide() {
+        val newValue = !settingsRepository.isOverlayOnRightSide()
+        settingsRepository.setOverlayOnRightSide(newValue)
+        _isOverlayOnRightSide.value = newValue
     }
 
     val nextCleanupTimeMillis: StateFlow<Long?> = workManager.getWorkInfosForUniqueWorkFlow("ScreenshotCleanupWork")

@@ -11,9 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
 import dev.sj010.ssjanitor.ui.screens.home.HomeScreen
+import dev.sj010.ssjanitor.ui.screens.settings.SettingsScreen
 import dev.sj010.ssjanitor.ui.theme.SshotTheme
 import dev.sj010.ssjanitor.viewmodel.HomeViewModel
 import dev.sj010.ssjanitor.viewmodel.HomeViewModelFactory
@@ -48,11 +52,25 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
         setContent {
             SshotTheme {
+                val navController = rememberNavController()
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    HomeScreen(viewModel = viewModel)
+                    NavHost(navController = navController, startDestination = "home") {
+                        composable("home") {
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onNavigateToSettings = { navController.navigate("settings") }
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -22,4 +22,12 @@ class SettingsRepository(context: Context) {
     fun setCleanupPaused(paused: Boolean) {
         prefs.edit { putBoolean(AppConstants.PREF_CLEANUP_PAUSED, paused) }
     }
+
+    fun isOverlayOnRightSide(): Boolean {
+        return prefs.getBoolean(AppConstants.PREF_OVERLAY_RIGHT, false)
+    }
+
+    fun setOverlayOnRightSide(right: Boolean) {
+        prefs.edit { putBoolean(AppConstants.PREF_OVERLAY_RIGHT, right) }
+    }
 }
