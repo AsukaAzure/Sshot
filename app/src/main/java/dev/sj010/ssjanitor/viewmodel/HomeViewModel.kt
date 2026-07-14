@@ -39,6 +39,9 @@ data class HomeUiState(
     val isAutoArchiveEnabled: Boolean = false,
     val isCleanupPaused: Boolean = false,
     val isOverlayOnRightSide: Boolean = false,
+    val preset1Minutes: Int = 60,
+    val preset2Minutes: Int = 720,
+    val preset3Minutes: Int = 4320,
     val latestVersion: String? = null
 )
 
@@ -57,6 +60,15 @@ class HomeViewModel(
     private val _isOverlayOnRightSide = MutableStateFlow(settingsRepository.isOverlayOnRightSide())
     val isOverlayOnRightSide = _isOverlayOnRightSide.asStateFlow()
 
+    private val _preset1Minutes = MutableStateFlow(settingsRepository.getPreset1Minutes())
+    val preset1Minutes = _preset1Minutes.asStateFlow()
+
+    private val _preset2Minutes = MutableStateFlow(settingsRepository.getPreset2Minutes())
+    val preset2Minutes = _preset2Minutes.asStateFlow()
+
+    private val _preset3Minutes = MutableStateFlow(settingsRepository.getPreset3Minutes())
+    val preset3Minutes = _preset3Minutes.asStateFlow()
+
     private val _latestVersion = MutableStateFlow<String?>(null)
     val latestVersion = _latestVersion.asStateFlow()
 
@@ -72,8 +84,20 @@ class HomeViewModel(
         _isAutoArchiveEnabled,
         _isCleanupPaused,
         _isOverlayOnRightSide,
+        _preset1Minutes,
+        _preset2Minutes,
+        _preset3Minutes,
         _latestVersion
-    ) { screenshots, isAutoEnabled, isPaused, isOverlayRight, latestVer ->
+    ) { args ->
+        val screenshots = args[0] as List<ScreenshotEntity>
+        val isAutoEnabled = args[1] as Boolean
+        val isPaused = args[2] as Boolean
+        val isOverlayRight = args[3] as Boolean
+        val p1 = args[4] as Int
+        val p2 = args[5] as Int
+        val p3 = args[6] as Int
+        val latestVer = args[7] as String?
+
         var archived = 0
         var kept = 0
         var deleted = 0
@@ -101,6 +125,9 @@ class HomeViewModel(
             isAutoArchiveEnabled = isAutoEnabled,
             isCleanupPaused = isPaused,
             isOverlayOnRightSide = isOverlayRight,
+            preset1Minutes = p1,
+            preset2Minutes = p2,
+            preset3Minutes = p3,
             latestVersion = latestVer
         )
     }.stateIn(
@@ -128,6 +155,21 @@ class HomeViewModel(
         val newValue = !settingsRepository.isOverlayOnRightSide()
         settingsRepository.setOverlayOnRightSide(newValue)
         _isOverlayOnRightSide.value = newValue
+    }
+
+    fun updatePreset1Minutes(minutes: Int) {
+        settingsRepository.setPreset1Minutes(minutes)
+        _preset1Minutes.value = minutes
+    }
+
+    fun updatePreset2Minutes(minutes: Int) {
+        settingsRepository.setPreset2Minutes(minutes)
+        _preset2Minutes.value = minutes
+    }
+
+    fun updatePreset3Minutes(minutes: Int) {
+        settingsRepository.setPreset3Minutes(minutes)
+        _preset3Minutes.value = minutes
     }
 
     val nextCleanupTimeMillis: StateFlow<Long?> = workManager.getWorkInfosForUniqueWorkFlow("ScreenshotCleanupWork")

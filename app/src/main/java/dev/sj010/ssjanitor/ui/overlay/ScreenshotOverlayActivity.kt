@@ -48,6 +48,9 @@ class ScreenshotOverlayActivity : ComponentActivity() {
         repository = ScreenshotRepository(database.screenshotDao())
         val settingsRepository = dev.sj010.ssjanitor.data.repository.SettingsRepository(applicationContext)
         val isRightSide = settingsRepository.isOverlayOnRightSide()
+        val p1 = settingsRepository.getPreset1Minutes()
+        val p2 = settingsRepository.getPreset2Minutes()
+        val p3 = settingsRepository.getPreset3Minutes()
 
         val uriString = intent.getStringExtra(AppConstants.EXTRA_SCREENSHOT_URI) ?: run {
             finish()
@@ -60,7 +63,10 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                     uriString = uriString,
                     onAction = { finish() },
                     repository = repository,
-                    isRightSide = isRightSide
+                    isRightSide = isRightSide,
+                    preset1Minutes = p1,
+                    preset2Minutes = p2,
+                    preset3Minutes = p3
                 )
             }
         }
@@ -72,7 +78,10 @@ class ScreenshotOverlayActivity : ComponentActivity() {
         uriString: String,
         onAction: () -> Unit,
         repository: ScreenshotRepository,
-        isRightSide: Boolean
+        isRightSide: Boolean,
+        preset1Minutes: Int,
+        preset2Minutes: Int,
+        preset3Minutes: Int
     ) {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
@@ -83,6 +92,16 @@ class ScreenshotOverlayActivity : ComponentActivity() {
         
         var isVisible by remember { mutableStateOf(false) }
         var actionTaken by remember { mutableStateOf(false) }
+
+        val formatDuration = { totalMinutes: Int ->
+            val h = totalMinutes / 60
+            val m = totalMinutes % 60
+            when {
+                h > 0 && m > 0 -> "${h}h ${m}m"
+                h > 0 -> "${h}h"
+                else -> "${m}m"
+            }
+        }
 
         val intentSenderLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -171,25 +190,25 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Row 1: Tonight & Tom
+                        // Row 1: Preset 1 & Preset 2
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
-                                ScheduleButtonSmall("Tonight", Icons.Default.Nightlight) {
+                                ScheduleButtonSmall(formatDuration(preset1Minutes), Icons.Default.Timer) {
                                     scope.launch {
                                         actionTaken = true
-                                        repository.scheduleDeletion(context, uriString, getTonightTime())
+                                        repository.scheduleDeletion(context, uriString, getTimeFromNow(preset1Minutes))
                                         dismissOverlay()
                                     }
                                 }
                             }
                             Box(modifier = Modifier.weight(1f)) {
-                                ScheduleButtonSmall("Tom", Icons.Default.WbSunny) {
+                                ScheduleButtonSmall(formatDuration(preset2Minutes), Icons.Default.Timer) {
                                     scope.launch {
                                         actionTaken = true
-                                        repository.scheduleDeletion(context, uriString, getTomorrowTime())
+                                        repository.scheduleDeletion(context, uriString, getTimeFromNow(preset2Minutes))
                                         dismissOverlay()
                                     }
                                 }
@@ -198,16 +217,16 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                         
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Row 2: Weekend & Custom
+                        // Row 2: Preset 3 & Custom
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
-                                ScheduleButtonSmall("Weekend", Icons.Default.Weekend) {
+                                ScheduleButtonSmall(formatDuration(preset3Minutes), Icons.Default.Timer) {
                                     scope.launch {
                                         actionTaken = true
-                                        repository.scheduleDeletion(context, uriString, getWeekendTime())
+                                        repository.scheduleDeletion(context, uriString, getTimeFromNow(preset3Minutes))
                                         dismissOverlay()
                                     }
                                 }
@@ -233,7 +252,8 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
                                     context.startActivity(Intent.createChooser(shareIntent, "Share Screenshot"))
-                                    repository.scheduleDeletion(context, uriString, getTonightTime(), true)
+                                    // Use Preset 1 for "Share & Delete"
+                                    repository.scheduleDeletion(context, uriString, getTimeFromNow(preset1Minutes), true)
                                     dismissOverlay()
                                 }
                             },
@@ -247,7 +267,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                         ) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Share & Delete Tonight", fontWeight = FontWeight.Bold)
+                            Text("Share & Delete in ${formatDuration(preset1Minutes)}", fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -396,6 +416,12 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun getTimeFromNow(minutes: Int): Long {
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.MINUTE, minutes)
+        return calendar.timeInMillis
     }
 
     private fun getTonightTime(): Long {

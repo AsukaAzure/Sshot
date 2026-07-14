@@ -26,6 +26,9 @@ object AppConstants {
     const val PREF_AUTO_ARCHIVE = "pref_auto_archive"
     const val PREF_CLEANUP_PAUSED = "pref_cleanup_paused"
     const val PREF_OVERLAY_RIGHT = "pref_overlay_right"
+    const val PREF_PRESET_1_MINUTES = "pref_preset_1_minutes"
+    const val PREF_PRESET_2_MINUTES = "pref_preset_2_minutes"
+    const val PREF_PRESET_3_MINUTES = "pref_preset_3_minutes"
 
     const val GITHUB_REPO_URL = "https://github.com/AsukaAzure/Sshot"
     const val GITHUB_API_LATEST_RELEASE = "https://api.github.com/repos/AsukaAzure/Sshot/releases/latest"

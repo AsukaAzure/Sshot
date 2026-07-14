@@ -30,4 +30,13 @@ class SettingsRepository(context: Context) {
     fun setOverlayOnRightSide(right: Boolean) {
         prefs.edit { putBoolean(AppConstants.PREF_OVERLAY_RIGHT, right) }
     }
+
+    fun getPreset1Minutes(): Int = prefs.getInt(AppConstants.PREF_PRESET_1_MINUTES, 60)
+    fun setPreset1Minutes(minutes: Int) = prefs.edit { putInt(AppConstants.PREF_PRESET_1_MINUTES, minutes) }
+
+    fun getPreset2Minutes(): Int = prefs.getInt(AppConstants.PREF_PRESET_2_MINUTES, 720)
+    fun setPreset2Minutes(minutes: Int) = prefs.edit { putInt(AppConstants.PREF_PRESET_2_MINUTES, minutes) }
+
+    fun getPreset3Minutes(): Int = prefs.getInt(AppConstants.PREF_PRESET_3_MINUTES, 4320)
+    fun setPreset3Minutes(minutes: Int) = prefs.edit { putInt(AppConstants.PREF_PRESET_3_MINUTES, minutes) }
 }
