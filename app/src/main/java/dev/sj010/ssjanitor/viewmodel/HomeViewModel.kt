@@ -145,10 +145,14 @@ class HomeViewModel(
         // For simplicity, we can just rely on isAutoArchiveEnabled flow for UI feedback.
     }
 
-    fun toggleCleanupPause() {
+    fun toggleCleanupPause(context: Context) {
         val newValue = !settingsRepository.isCleanupPaused()
         settingsRepository.setCleanupPaused(newValue)
         _isCleanupPaused.value = newValue
+        if (!newValue) {
+            // If resumed, run cleanup immediately
+            runCleanupNow(context)
+        }
     }
 
     fun toggleOverlaySide() {
@@ -171,19 +175,6 @@ class HomeViewModel(
         settingsRepository.setPreset3Minutes(minutes)
         _preset3Minutes.value = minutes
     }
-
-    val nextCleanupTimeMillis: StateFlow<Long?> = workManager.getWorkInfosForUniqueWorkFlow("ScreenshotCleanupWork")
-        .map { workInfos ->
-            val info = workInfos.firstOrNull()
-            Log.d("HomeViewModel", "WorkInfo updated: state=${info?.state}, nextScheduleTimeMillis=${info?.nextScheduleTimeMillis}, runAttemptCount=${info?.runAttemptCount}")
-            val time = info?.nextScheduleTimeMillis
-            if (time != null && time > 0) time else null
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
 
     fun dismissUpdateDialog() {
         _latestVersion.value = null
@@ -252,40 +243,6 @@ class HomeViewModel(
 
     fun onDeletePermissionDenied() {
         pendingUrisToDelete = emptyList()
-    }
-
-    fun rescheduleCleanup(hour: Int, minute: Int, context: Context) {
-        val now = Calendar.getInstance()
-        val target = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            // If the chosen time is already past for today, schedule for tomorrow
-            if (before(now)) add(Calendar.DAY_OF_YEAR, 1)
-        }
-        val delayMillis = target.timeInMillis - now.timeInMillis
-
-        val constraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(true)
-            .setRequiresStorageNotLow(true)
-            .build()
-
-        val cleanupRequest = PeriodicWorkRequestBuilder<ScreenshotCleanupWorker>(24, TimeUnit.HOURS)
-            .setConstraints(constraints)
-            .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
-            .setBackoffCriteria(
-                BackoffPolicy.LINEAR,
-                WorkRequest.MIN_BACKOFF_MILLIS,
-                TimeUnit.MILLISECONDS
-            )
-            .build()
-
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "ScreenshotCleanupWork",
-            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
-            cleanupRequest
-        )
     }
 }
 

@@ -299,6 +299,10 @@ class ScreenshotContentObserver(
      * processing to complete before marking the URI as processed.
      */
     private suspend fun handleNewScreenshot(uriString: String, fileName: String, createdAt: Long) {
+        if (settingsRepository.isCleanupPaused()) {
+            Log.d(TAG, "Screenshot Janitor is paused, ignoring: $uriString")
+            return
+        }
         val existing = repository.getScreenshotByUri(uriString)
         
         val uri = Uri.parse(uriString)

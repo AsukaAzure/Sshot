@@ -58,7 +58,6 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    val nextCleanupTime by viewModel.nextCleanupTimeMillis.collectAsState()
 
     // ── Update Check ────────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
@@ -248,7 +247,6 @@ fun HomeScreen(
         HomeContent(
             innerPadding = innerPadding,
             uiState = uiState,
-            nextCleanupTime = nextCleanupTime,
             hasNotificationPermission = hasNotificationPermission,
             hasStoragePermission = hasStoragePermission,
             isAllFilesManager = isAllFilesManager,
@@ -289,9 +287,7 @@ fun HomeScreen(
                 )
                 overlayPermissionLauncher.launch(intent)
             },
-            onRunCleanup = { viewModel.runCleanupNow(context) },
-            onTogglePause = { viewModel.toggleCleanupPause() },
-            onReschedule = { hour, minute -> viewModel.rescheduleCleanup(hour, minute, context) },
+            onTogglePause = { viewModel.toggleCleanupPause(context) },
             onArchive = { viewModel.archiveScreenshot(it) },
             onKeep = { viewModel.keepScreenshot(it) },
             onDelete = { viewModel.deleteScreenshot(context, it) },

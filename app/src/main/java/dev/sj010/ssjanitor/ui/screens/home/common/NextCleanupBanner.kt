@@ -64,74 +64,13 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NextCleanupBanner(
-    timeMillis: Long,
     isPaused: Boolean,
-    onRunNow: () -> Unit,
     onTogglePause: () -> Unit,
-    onReschedule: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    // Derive initial hour/minute from the current scheduled time
-    val initialHour = remember(timeMillis) {
-        Calendar.getInstance().apply { timeInMillis = timeMillis }.get(Calendar.HOUR_OF_DAY)
-    }
-    val initialMinute = remember(timeMillis) {
-        Calendar.getInstance().apply { timeInMillis = timeMillis }.get(Calendar.MINUTE)
-    }
-    val timePickerState = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = false
-    )
-
-    if (showTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = {
-                Text(
-                    text = "Set Cleanup Time",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Cleanup will run every day at this time.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    TimePicker(state = timePickerState)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onReschedule(timePickerState.hour, timePickerState.minute)
-                        showTimePicker = false
-                    }
-                ) {
-                    Text("Confirm", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
-                    Text("Cancel")
-                }
-            },
-            shape = RoundedCornerShape(28.dp)
-        )
-    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "squigglyRotation")
     val rotation by infiniteTransition.animateFloat(
@@ -173,35 +112,25 @@ fun NextCleanupBanner(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showTimePicker = true
-                    }
-                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 76.dp)
+                    .padding(start = 16.dp, top = 20.dp, bottom = 20.dp, end = 76.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.AutoDelete,
                     contentDescription = null,
                     tint = contentColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
                 Column {
                     Text(
-                        text = if (isPaused) "Cleanup Paused" else "Next Scheduled Cleanup",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = if (isPaused) "Sshot is Paused" else "Sshot is Running",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = contentColor
                     )
-                    val sdf = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault())
                     Text(
-                        text = if (isPaused) "Automatic cleanup is disabled" else sdf.format(Date(timeMillis)),
+                        text = if (isPaused) "Monitoring and cleanup are disabled" else "Everything is operating normally",
                         style = MaterialTheme.typography.bodyMedium,
                         color = contentColor.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = "Tap to change time",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.55f)
                     )
                 }
             }

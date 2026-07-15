@@ -58,7 +58,6 @@ import java.util.Locale
 fun HomeContent(
     innerPadding: PaddingValues,
     uiState: HomeUiState,
-    nextCleanupTime: Long?,
     hasNotificationPermission: Boolean,
     hasStoragePermission: Boolean,
     isAllFilesManager: Boolean,
@@ -68,9 +67,7 @@ fun HomeContent(
     onRequestAllFilesAccess: () -> Unit,
     onRequestDisableBatteryOpt: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
-    onRunCleanup: () -> Unit,
     onTogglePause: () -> Unit,
-    onReschedule: (Int, Int) -> Unit,
     onArchive: (String) -> Unit,
     onKeep: (String) -> Unit,
     onDelete: (String) -> Unit,
@@ -196,17 +193,12 @@ fun HomeContent(
             )
         }
 
-        // ── Next cleanup banner ─────────────────────────────────────────────
-        if (nextCleanupTime != null) {
-            item(key = "cleanup_banner") {
-                NextCleanupBanner(
-                    timeMillis = nextCleanupTime,
-                    isPaused = uiState.isCleanupPaused,
-                    onRunNow = onRunCleanup,
-                    onTogglePause = onTogglePause,
-                    onReschedule = onReschedule
-                )
-            }
+        // ── Sshot Status Banner ─────────────────────────────────────────────
+        item(key = "cleanup_banner") {
+            NextCleanupBanner(
+                isPaused = uiState.isCleanupPaused,
+                onTogglePause = onTogglePause
+            )
         }
 
         // ── Section header ──────────────────────────────────────────────────
