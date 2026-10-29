@@ -23,6 +23,7 @@ import kotlinx.coroutines.SupervisorJob
 import java.util.Collections
 import android.content.Intent
 import dev.sj010.ssjanitor.core.constants.AppConstants
+import dev.sj010.ssjanitor.core.constants.AppMode
 
 class ScreenshotContentObserver(
     private val context: Context,
@@ -301,6 +302,11 @@ class ScreenshotContentObserver(
      * processing to complete before marking the URI as processed.
      */
     private suspend fun handleNewScreenshot(uriString: String, fileName: String, createdAt: Long) {
+        val mode = settingsRepository.getAppMode()
+        if (mode != AppMode.RUNNING) {
+            Log.d(TAG, "Sshot is $mode, ignoring: $uriString")
+            return
+        }
         val existing = repository.getScreenshotByUri(uriString)
         
         val uri = Uri.parse(uriString)

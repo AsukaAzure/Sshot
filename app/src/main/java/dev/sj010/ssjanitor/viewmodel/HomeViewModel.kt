@@ -12,6 +12,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
 import dev.sj010.ssjanitor.data.db.entity.ScreenshotEntity
+import dev.sj010.ssjanitor.SshotApp
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
 import dev.sj010.ssjanitor.network.UpdateManager
@@ -145,12 +146,23 @@ class HomeViewModel(
         // For simplicity, we can just rely on isAutoArchiveEnabled flow for UI feedback.
     }
 
+    /**
+     * Pause = fully off: stops the monitoring service and cancels every piece
+     * of background work, so nothing runs until resumed. Scheduled deletions
+     * are still tracked in the DB and the daily safety-net worker (re-scheduled
+     * on resume) deletes them once their time has passed.
+     */
     fun toggleCleanupPause(context: Context) {
         val newValue = !settingsRepository.isCleanupPaused()
         settingsRepository.setCleanupPaused(newValue)
         _isCleanupPaused.value = newValue
-        if (!newValue) {
-            // If resumed, run cleanup immediately
+        val app = context.applicationContext as SshotApp
+        if (newValue) {
+            app.stopDetectionService()
+            workManager.cancelAllWork()
+        } else {
+            app.startDetectionService()
+            app.scheduleCleanupWorker()
             runCleanupNow(context)
         }
     }

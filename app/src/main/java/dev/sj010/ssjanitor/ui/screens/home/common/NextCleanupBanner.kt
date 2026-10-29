@@ -128,7 +128,7 @@ fun NextCleanupBanner(
                         color = contentColor
                     )
                     Text(
-                        text = if (isPaused) "Automatic cleanup is paused — screenshots are still detected" else "Everything is operating normally",
+                        text = if (isPaused) "Fully stopped — tap play to resume" else "Everything is operating normally",
                         style = MaterialTheme.typography.bodyMedium,
                         color = contentColor.copy(alpha = 0.8f)
                     )

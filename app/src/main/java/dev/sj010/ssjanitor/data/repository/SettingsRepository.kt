@@ -3,6 +3,7 @@ package dev.sj010.ssjanitor.data.repository
 import android.content.Context
 import androidx.core.content.edit
 import dev.sj010.ssjanitor.core.constants.AppConstants
+import dev.sj010.ssjanitor.core.constants.AppMode
 
 class SettingsRepository(context: Context) {
     private val prefs = context.getSharedPreferences(AppConstants.PREF_NAME, Context.MODE_PRIVATE)
@@ -22,6 +23,8 @@ class SettingsRepository(context: Context) {
     fun setCleanupPaused(paused: Boolean) {
         prefs.edit { putBoolean(AppConstants.PREF_CLEANUP_PAUSED, paused) }
     }
+
+    fun getAppMode(): AppMode = if (isCleanupPaused()) AppMode.PAUSED else AppMode.RUNNING
 
     fun isOverlayOnRightSide(): Boolean {
         return prefs.getBoolean(AppConstants.PREF_OVERLAY_RIGHT, false)

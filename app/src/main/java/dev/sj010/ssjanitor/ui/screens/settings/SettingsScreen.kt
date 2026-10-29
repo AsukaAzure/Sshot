@@ -63,8 +63,8 @@ fun SettingsScreen(
             // --- General Section ---
             SettingsSection(title = "General") {
                 ListItem(
-                    headlineContent = { Text("Pause Cleanup") },
-                    supportingContent = { Text("Temporarily stop automatic screenshot deletion") },
+                    headlineContent = { Text("Pause Sshot") },
+                    supportingContent = { Text("Fully stop the app — no screenshot detection, no cleanup, no background activity until resumed") },
                     leadingContent = { Icon(Icons.Default.Pause, contentDescription = null) },
                     trailingContent = {
                         Switch(

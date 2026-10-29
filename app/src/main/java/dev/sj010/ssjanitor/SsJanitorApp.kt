@@ -8,6 +8,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
+import dev.sj010.ssjanitor.core.constants.AppMode
 import dev.sj010.ssjanitor.data.db.AppDatabase
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
@@ -26,8 +27,10 @@ class SshotApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        startDetectionService()
-        scheduleCleanupWorker()
+        if (settingsRepository.getAppMode() == AppMode.RUNNING) {
+            scheduleCleanupWorker()
+            startDetectionService()
+        }
     }
 
     fun startDetectionService() {
@@ -42,12 +45,16 @@ class SshotApp : Application() {
         }
     }
 
+    fun stopDetectionService() {
+        stopService(Intent(this, ScreenshotDetectionService::class.java))
+    }
+
     /**
      * Daily safety-net cleanup: deletes archived screenshots and any whose
      * scheduled deleteAt has passed, even if their per-URI one-time work was
-     * skipped (e.g. it fired while cleanup was paused).
+     * skipped (e.g. it fired while Sshot was paused).
      */
-    private fun scheduleCleanupWorker() {
+    fun scheduleCleanupWorker() {
         val cleanupRequest = PeriodicWorkRequestBuilder<ScreenshotCleanupWorker>(24, TimeUnit.HOURS)
             .setBackoffCriteria(
                 BackoffPolicy.LINEAR,

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dev.sj010.ssjanitor.SshotApp
+import dev.sj010.ssjanitor.core.constants.AppMode
 import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
 
 class ScreenshotCleanupWorker(
@@ -13,7 +14,7 @@ class ScreenshotCleanupWorker(
 
     override suspend fun doWork(): Result {
         val app = applicationContext as SshotApp
-        if (app.settingsRepository.isCleanupPaused()) {
+        if (app.settingsRepository.getAppMode() != AppMode.RUNNING) {
             return Result.success()
         }
 
