@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,8 @@ class ScreenshotOverlayActivity : ComponentActivity() {
     ) {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
+        val isLandscape = LocalConfiguration.current.orientation ==
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE
         var showDatePicker by remember { mutableStateOf(false) }
         var showTimePicker by remember { mutableStateOf(false) }
         val datePickerState = rememberDatePickerState()
@@ -163,14 +166,14 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                     animationSpec = tween(durationMillis = 300)
                 ) + fadeOut()
             ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxHeight(0.5f)
-                            .width(280.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { }, // Consume card taps so they don't reach the dismiss layer behind
+                Card(
+                    modifier = Modifier
+                        .fillMaxHeight(if (isLandscape) 1f else 0.5f)
+                        .width(280.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { }, // Consume card taps so they don't reach the dismiss layer behind
                     shape = if (isRightSide) {
                         RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
                     } else {
@@ -187,24 +190,22 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                             .padding(20.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        // Screenshot preview shrinks on short screens instead of
-                        // pushing the action buttons out of the card.
-                        OverlayScreenshotPreview(
-                            uriString = uriString,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 100.dp)
-                                .weight(1f, fill = false)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Screenshot Captured",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            lineHeight = 28.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OverlayScreenshotPreview(
+                                uriString = uriString,
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Text(
+                                text = "Screenshot Captured",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                lineHeight = 26.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
                             text = "Schedule for deletion",
@@ -261,6 +262,9 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                                 }
                             }
                         }
+
+                        // Pushes the divider + actions to the bottom of the card.
+                        Spacer(modifier = Modifier.weight(1f))
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -429,7 +433,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                 try {
                     bitmap = context.contentResolver.loadThumbnail(
                         Uri.parse(uriString),
-                        Size(512, 512),
+                        Size(256, 256),
                         null
                     )
                 } catch (_: Exception) {
@@ -440,7 +444,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
 
         Box(
             modifier = modifier
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             contentAlignment = Alignment.Center
         ) {
