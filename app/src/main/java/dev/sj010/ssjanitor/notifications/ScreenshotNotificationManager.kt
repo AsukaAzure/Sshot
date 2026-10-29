@@ -165,8 +165,8 @@ class ScreenshotNotificationManager(private val context: Context) {
 
         val builder = NotificationCompat.Builder(context, AppConstants.NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle("Cleanup Recommended")
-            .setContentText("Found $count old screenshots. Tap to delete them and free up space.")
+            .setContentTitle("Auto-Delete Incomplete")
+            .setContentText("Couldn't delete $count scheduled screenshots automatically. Tap to review and delete them.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

@@ -7,11 +7,13 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.Log
 import dev.sj010.ssjanitor.data.db.AppDatabase
 import dev.sj010.ssjanitor.data.db.entity.ScreenshotEntity
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
+import dev.sj010.ssjanitor.notifications.ScreenshotNotificationManager
 import dev.sj010.ssjanitor.ui.overlay.ScreenshotOverlayActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -299,10 +301,6 @@ class ScreenshotContentObserver(
      * processing to complete before marking the URI as processed.
      */
     private suspend fun handleNewScreenshot(uriString: String, fileName: String, createdAt: Long) {
-        if (settingsRepository.isCleanupPaused()) {
-            Log.d(TAG, "Screenshot Janitor is paused, ignoring: $uriString")
-            return
-        }
         val existing = repository.getScreenshotByUri(uriString)
         
         val uri = Uri.parse(uriString)
@@ -340,10 +338,17 @@ class ScreenshotContentObserver(
                 putExtra(AppConstants.EXTRA_SCREENSHOT_URI, uriString)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
-            try {
+            val launched = try {
                 context.startActivity(intent)
+                true
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to launch overlay activity", e)
+                false
+            }
+            // Background activity starts are silently blocked without the
+            // overlay permission — fall back to a notification prompt.
+            if (!launched || !Settings.canDrawOverlays(context)) {
+                ScreenshotNotificationManager(context).showScreenshotNotification(uriString)
             }
         }
     }

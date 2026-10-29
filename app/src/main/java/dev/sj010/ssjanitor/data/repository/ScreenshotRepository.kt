@@ -12,7 +12,6 @@ import kotlinx.coroutines.withContext
 
 import android.content.IntentSender
 import android.provider.MediaStore
-import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -181,14 +180,11 @@ class ScreenshotRepository(private val screenshotDao: ScreenshotDao) {
 
     private fun scheduleWorkManagerCleanup(context: Context, deleteAt: Long, uri: String) {
         val delay = deleteAt - System.currentTimeMillis()
-        val constraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(true)
-            .setRequiresStorageNotLow(true)
-            .build()
 
+        // No battery/storage constraints: deletion frees storage and the user
+        // picked an explicit time, so it should not be deferred.
         val workRequest = OneTimeWorkRequestBuilder<ScreenshotCleanupWorker>()
             .setInitialDelay(delay.coerceAtLeast(0), TimeUnit.MILLISECONDS)
-            .setConstraints(constraints)
             .build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(

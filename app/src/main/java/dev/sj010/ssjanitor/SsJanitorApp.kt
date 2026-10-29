@@ -2,11 +2,19 @@ package dev.sj010.ssjanitor
 
 import android.app.Application
 import android.content.Intent
+import android.util.Log
+import androidx.work.BackoffPolicy
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import dev.sj010.ssjanitor.data.db.AppDatabase
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.data.repository.SettingsRepository
 import dev.sj010.ssjanitor.observer.ScreenshotContentObserver
 import dev.sj010.ssjanitor.service.ScreenshotDetectionService
+import dev.sj010.ssjanitor.worker.ScreenshotCleanupWorker
+import java.util.concurrent.TimeUnit
 
 class SshotApp : Application() {
 
@@ -19,10 +27,39 @@ class SshotApp : Application() {
     override fun onCreate() {
         super.onCreate()
         startDetectionService()
+        scheduleCleanupWorker()
     }
 
     fun startDetectionService() {
         val intent = Intent(this, ScreenshotDetectionService::class.java)
-        startForegroundService(intent)
+        try {
+            startForegroundService(intent)
+        } catch (e: IllegalStateException) {
+            // WorkManager can cold-start this process in the background to run
+            // cleanup, where foreground-service starts are restricted (Android 12+).
+            // Monitoring restarts via BootReceiver or the next foreground launch.
+            Log.w("SshotApp", "Skipped starting detection service from background", e)
+        }
+    }
+
+    /**
+     * Daily safety-net cleanup: deletes archived screenshots and any whose
+     * scheduled deleteAt has passed, even if their per-URI one-time work was
+     * skipped (e.g. it fired while cleanup was paused).
+     */
+    private fun scheduleCleanupWorker() {
+        val cleanupRequest = PeriodicWorkRequestBuilder<ScreenshotCleanupWorker>(24, TimeUnit.HOURS)
+            .setBackoffCriteria(
+                BackoffPolicy.LINEAR,
+                WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "ScreenshotCleanupWork",
+            ExistingPeriodicWorkPolicy.KEEP,
+            cleanupRequest
+        )
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import dev.sj010.ssjanitor.core.constants.AppConstants
 import dev.sj010.ssjanitor.data.db.AppDatabase
@@ -153,11 +155,14 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                     animationSpec = tween(durationMillis = 300)
                 ) + fadeOut()
             ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxHeight(0.5f)
-                        .width(280.dp)
-                        .clickable(enabled = false) { }, // Prevent clicks from passing through
+                    Card(
+                        modifier = Modifier
+                            .fillMaxHeight(0.5f)
+                            .width(280.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { }, // Consume card taps so they don't reach the dismiss layer behind
                     shape = if (isRightSide) {
                         RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)
                     } else {
@@ -368,6 +373,15 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                                 localCalendar.set(year, month, day, timePickerState.hour, timePickerState.minute)
                                 localCalendar.set(Calendar.SECOND, 0)
                                 localCalendar.set(Calendar.MILLISECOND, 0)
+
+                                if (localCalendar.timeInMillis <= System.currentTimeMillis()) {
+                                    Toast.makeText(
+                                        context,
+                                        "That time has already passed — pick a future time",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@TextButton
+                                }
 
                                 android.util.Log.d("ScreenshotOverlay", "Selected custom time: ${localCalendar.time}")
 
