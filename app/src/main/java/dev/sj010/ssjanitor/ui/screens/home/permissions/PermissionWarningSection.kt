@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -35,12 +37,26 @@ fun PermissionWarningSection(
     onRequestAllFilesAccess: () -> Unit,
     onRequestDisableBatteryOpt: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
+    onOpenSetup: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // ── Guided setup entry point ─────────────────────────────────────
+        Button(
+            onClick = onOpenSetup,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(100.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text("Complete Setup", fontWeight = FontWeight.Bold)
+        }
+
         // ── Permission warning card ──────────────────────────────────────
         if (!hasNotificationPermission || !hasStoragePermission || !isAllFilesManager || !canDrawOverlays) {
             PermissionWarningCard(

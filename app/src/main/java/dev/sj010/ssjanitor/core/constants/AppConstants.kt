@@ -26,6 +26,7 @@ object AppConstants {
     const val PREF_AUTO_ARCHIVE = "pref_auto_archive"
     const val PREF_CLEANUP_PAUSED = "pref_cleanup_paused"
     const val PREF_OVERLAY_RIGHT = "pref_overlay_right"
+    const val PREF_SETUP_DONE = "pref_setup_done"
     const val PREF_PRESET_1_MINUTES = "pref_preset_1_minutes"
     const val PREF_PRESET_2_MINUTES = "pref_preset_2_minutes"
     const val PREF_PRESET_3_MINUTES = "pref_preset_3_minutes"

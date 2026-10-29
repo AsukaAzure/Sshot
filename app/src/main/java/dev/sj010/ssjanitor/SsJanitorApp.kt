@@ -50,6 +50,25 @@ class SshotApp : Application() {
     }
 
     /**
+     * Pause = fully off: stops monitoring and cancels every piece of background
+     * work, so nothing runs until resumed. Scheduled deletions are still tracked
+     * in the DB; the safety-net worker re-armed by [resumeApp] deletes anything
+     * whose time has passed.
+     */
+    fun pauseApp() {
+        settingsRepository.setCleanupPaused(true)
+        stopDetectionService()
+        WorkManager.getInstance(this).cancelAllWork()
+    }
+
+    /** Resumes monitoring and re-arms the daily safety-net cleanup. */
+    fun resumeApp() {
+        settingsRepository.setCleanupPaused(false)
+        startDetectionService()
+        scheduleCleanupWorker()
+    }
+
+    /**
      * Daily safety-net cleanup: deletes archived screenshots and any whose
      * scheduled deleteAt has passed, even if their per-URI one-time work was
      * skipped (e.g. it fired while Sshot was paused).

@@ -26,6 +26,14 @@ class SettingsRepository(context: Context) {
 
     fun getAppMode(): AppMode = if (isCleanupPaused()) AppMode.PAUSED else AppMode.RUNNING
 
+    fun isSetupCompleted(): Boolean {
+        return prefs.getBoolean(AppConstants.PREF_SETUP_DONE, false)
+    }
+
+    fun setSetupCompleted() {
+        prefs.edit { putBoolean(AppConstants.PREF_SETUP_DONE, true) }
+    }
+
     fun isOverlayOnRightSide(): Boolean {
         return prefs.getBoolean(AppConstants.PREF_OVERLAY_RIGHT, false)
     }

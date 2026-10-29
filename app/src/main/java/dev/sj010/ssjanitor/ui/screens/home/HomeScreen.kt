@@ -45,6 +45,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.sj010.ssjanitor.core.constants.AppConstants
+import dev.sj010.ssjanitor.ui.screens.home.permissions.SetupStep
+import dev.sj010.ssjanitor.ui.screens.home.permissions.SetupWizardDialog
 import dev.sj010.ssjanitor.viewmodel.HomeEvent
 import dev.sj010.ssjanitor.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
@@ -64,8 +66,7 @@ fun HomeScreen(
         viewModel.checkForUpdates(context)
     }
 
-    if (uiState.latestVersion != null) {
-        androidx.compose.material3.AlertDialog(
+    if (uiState.latestVersion != null) {        androidx.compose.material3.AlertDialog(
             onDismissRequest = { viewModel.dismissUpdateDialog() },
             title = { Text("Update Available") },
             text = { Text("A new version (${uiState.latestVersion}) is available on GitHub. Would you like to update now?") },
@@ -146,6 +147,12 @@ fun HomeScreen(
                     (context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager)
                         ?.isIgnoringBatteryOptimizations(context.packageName) == true
                 canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
+                // Returned from system settings — mark setup done if everything is granted.
+                if (hasNotificationPermission && hasStoragePermission &&
+                    isAllFilesManager && isBatteryOptDisabled && canDrawOverlays
+                ) {
+                    viewModel.setSetupCompleted()
+                }
             }
         })
     }
@@ -198,11 +205,103 @@ fun HomeScreen(
         canDrawOverlays = android.provider.Settings.canDrawOverlays(context)
     }
 
+    // ── Permission deep-link actions (shared by warning card & setup wizard) ─
+    val requestBasicPermissions = {
+        val list = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
+            list.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (!hasStoragePermission) {
+            list.add(Manifest.permission.READ_MEDIA_IMAGES)
+        }
+        if (list.isNotEmpty()) {
+            permissionLauncher.launch(list.toTypedArray())
+        }
+        Unit
+    }
+    val openAllFilesAccess = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                data = Uri.parse("package:${context.packageName}")
+            }
+            context.startActivity(intent)
+        }
+        Unit
+    }
+    val requestIgnoreBatteryOpt = {
+        val intent = android.content.Intent(
+            android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+        ).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+        batteryOptLauncher.launch(intent)
+        Unit
+    }
+    val openOverlaySettings = {
+        val intent = android.content.Intent(
+            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:${context.packageName}")
+        )
+        overlayPermissionLauncher.launch(intent)
+        Unit
+    }
+
+    // ── First-run setup wizard ────────────────────────────────────────────────
+    var showSetupWizard by remember { mutableStateOf(false) }
+    val setupSteps = listOf(
+        SetupStep(
+            title = "Notifications & Photos",
+            description = "Allow notifications and photo access so Sshot can detect screenshots and show cleanup results.",
+            granted = hasNotificationPermission && hasStoragePermission,
+            onGrant = requestBasicPermissions
+        ),
+        SetupStep(
+            title = "All Files Access",
+            description = "Needed to delete scheduled screenshots automatically in the background.",
+            granted = isAllFilesManager,
+            onGrant = openAllFilesAccess
+        ),
+        SetupStep(
+            title = "Display Over Other Apps",
+            description = "Shows the action panel on top of your screen right after a screenshot.",
+            granted = canDrawOverlays,
+            onGrant = openOverlaySettings
+        ),
+        SetupStep(
+            title = "Disable Battery Optimization",
+            description = "Exempt Sshot so Android doesn't stop screenshot detection in the background.",
+            granted = isBatteryOptDisabled,
+            onGrant = requestIgnoreBatteryOpt
+        )
+    )
+    val allSetupStepsGranted = setupSteps.all { it.granted }
+
+    LaunchedEffect(Unit) {
+        if (!viewModel.isSetupCompleted()) {
+            if (allSetupStepsGranted) {
+                viewModel.setSetupCompleted()
+            } else {
+                showSetupWizard = true
+            }
+        }
+    }
+
     // ── Scroll-aware TopAppBar ────────────────────────────────────────────────
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    if (showSetupWizard) {
+        SetupWizardDialog(
+            steps = setupSteps,
+            onDismiss = { showSetupWizard = false },
+            onFinish = {
+                viewModel.setSetupCompleted()
+                showSetupWizard = false
+            }
+        )
+    }
 
     Scaffold(
         modifier = modifier
@@ -252,41 +351,11 @@ fun HomeScreen(
             isAllFilesManager = isAllFilesManager,
             isBatteryOptDisabled = isBatteryOptDisabled,
             canDrawOverlays = canDrawOverlays,
-            onRequestPermissions = {
-                val list = mutableListOf<String>()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
-                    list.add(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                if (!hasStoragePermission) {
-                    list.add(Manifest.permission.READ_MEDIA_IMAGES)
-                }
-                if (list.isNotEmpty()) {
-                    permissionLauncher.launch(list.toTypedArray())
-                }
-            },
-            onRequestAllFilesAccess = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                    }
-                    context.startActivity(intent)
-                }
-            },
-            onRequestDisableBatteryOpt = {
-                val intent = android.content.Intent(
-                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                ).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                }
-                batteryOptLauncher.launch(intent)
-            },
-            onRequestOverlayPermission = {
-                val intent = android.content.Intent(
-                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}")
-                )
-                overlayPermissionLauncher.launch(intent)
-            },
+            onRequestPermissions = requestBasicPermissions,
+            onRequestAllFilesAccess = openAllFilesAccess,
+            onRequestDisableBatteryOpt = requestIgnoreBatteryOpt,
+            onRequestOverlayPermission = openOverlaySettings,
+            onOpenSetup = { showSetupWizard = true },
             onTogglePause = { viewModel.toggleCleanupPause(context) },
             onArchive = { viewModel.archiveScreenshot(it) },
             onKeep = { viewModel.keepScreenshot(it) },

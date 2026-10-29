@@ -28,14 +28,45 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.sj010.ssjanitor.data.db.entity.ScreenshotEntity
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
+
+@Composable
+private fun rememberNow(updateIntervalMs: Long = 30_000L): Long {
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(updateIntervalMs) {
+        while (true) {
+            delay(updateIntervalMs)
+            now = System.currentTimeMillis()
+        }
+    }
+    return now
+}
+
+/** Coarse countdown text; rounds up so "1m" never means "just deleted". */
+private fun formatCountdown(remainingMs: Long): String {
+    val totalMinutes = ((remainingMs + 59_999) / 60_000).toInt()
+    val days = totalMinutes / (24 * 60)
+    val hours = (totalMinutes % (24 * 60)) / 60
+    val minutes = totalMinutes % 60
+    return when {
+        days > 0 -> "${days}d ${hours}h"
+        hours > 0 -> "${hours}h ${minutes}m"
+        minutes > 1 -> "${minutes}m"
+        else -> "under a minute"
+    }
+}
 
 @Composable
 fun ScreenshotCard(
@@ -92,8 +123,12 @@ fun ScreenshotCard(
                     )
 
                     if (screenshot.deleteAt != null && !screenshot.deleted && !screenshot.kept) {
-                        val deleteFormatted = remember(screenshot.deleteAt) {
-                            dateFormatter.format(Date(screenshot.deleteAt))
+                        val now = rememberNow()
+                        val remaining = screenshot.deleteAt - now
+                        val countdownText = if (remaining > 0) {
+                            "Deletes in ${formatCountdown(remaining)}"
+                        } else {
+                            "Deleting soon…"
                         }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -106,7 +141,7 @@ fun ScreenshotCard(
                                 tint = MaterialTheme.colorScheme.error
                             )
                             Text(
-                                text = "Delete at: $deleteFormatted",
+                                text = countdownText,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.error

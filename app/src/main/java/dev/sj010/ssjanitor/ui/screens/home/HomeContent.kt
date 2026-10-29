@@ -67,6 +67,7 @@ fun HomeContent(
     onRequestAllFilesAccess: () -> Unit,
     onRequestDisableBatteryOpt: () -> Unit,
     onRequestOverlayPermission: () -> Unit,
+    onOpenSetup: () -> Unit,
     onTogglePause: () -> Unit,
     onArchive: (String) -> Unit,
     onKeep: (String) -> Unit,
@@ -161,6 +162,7 @@ fun HomeContent(
                     onRequestAllFilesAccess = onRequestAllFilesAccess,
                     onRequestDisableBatteryOpt = onRequestDisableBatteryOpt,
                     onRequestOverlayPermission = onRequestOverlayPermission,
+                    onOpenSetup = onOpenSetup,
                     modifier = Modifier.animateItem(
                         placementSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,

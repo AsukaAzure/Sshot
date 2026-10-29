@@ -1,8 +1,10 @@
 package dev.sj010.ssjanitor.ui.overlay
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,6 +13,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,8 +25,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,8 +41,10 @@ import dev.sj010.ssjanitor.data.db.AppDatabase
 import dev.sj010.ssjanitor.data.repository.DeleteResult
 import dev.sj010.ssjanitor.data.repository.ScreenshotRepository
 import dev.sj010.ssjanitor.ui.theme.SshotTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 class ScreenshotOverlayActivity : ComponentActivity() {
@@ -179,13 +187,24 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                             .padding(20.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
+                        // Screenshot preview shrinks on short screens instead of
+                        // pushing the action buttons out of the card.
+                        OverlayScreenshotPreview(
+                            uriString = uriString,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 100.dp)
+                                .weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Text(
                             text = "Screenshot Captured",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
                             lineHeight = 28.sp
                         )
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
                             text = "Schedule for deletion",
@@ -193,7 +212,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         // Row 1: Preset 1 & Preset 2
                         Row(
@@ -220,7 +239,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                             }
                         }
                         
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Row 2: Preset 3 & Custom
                         Row(
@@ -243,9 +262,7 @@ class ScreenshotOverlayActivity : ComponentActivity() {
                             }
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
                         Button(
                             onClick = {
@@ -403,8 +420,50 @@ class ScreenshotOverlayActivity : ComponentActivity() {
     }
 
     @Composable
-    fun ScheduleButtonSmall(label: String, icon: ImageVector, onClick: () -> Unit) {
-        Surface(
+    private fun OverlayScreenshotPreview(uriString: String, modifier: Modifier = Modifier) {
+        val context = LocalContext.current
+        var bitmap by remember(uriString) { mutableStateOf<Bitmap?>(null) }
+
+        LaunchedEffect(uriString) {
+            withContext(Dispatchers.IO) {
+                try {
+                    bitmap = context.contentResolver.loadThumbnail(
+                        Uri.parse(uriString),
+                        Size(512, 512),
+                        null
+                    )
+                } catch (_: Exception) {
+                    // Unreadable image — keep the placeholder icon.
+                }
+            }
+        }
+
+        Box(
+            modifier = modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Screenshot preview",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun ScheduleButtonSmall(label: String, icon: ImageVector, onClick: () -> Unit) {        Surface(
             onClick = onClick,
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),

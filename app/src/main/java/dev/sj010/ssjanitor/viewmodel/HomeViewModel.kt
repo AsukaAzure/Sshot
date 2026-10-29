@@ -153,18 +153,21 @@ class HomeViewModel(
      * on resume) deletes them once their time has passed.
      */
     fun toggleCleanupPause(context: Context) {
-        val newValue = !settingsRepository.isCleanupPaused()
-        settingsRepository.setCleanupPaused(newValue)
-        _isCleanupPaused.value = newValue
         val app = context.applicationContext as SshotApp
-        if (newValue) {
-            app.stopDetectionService()
-            workManager.cancelAllWork()
-        } else {
-            app.startDetectionService()
-            app.scheduleCleanupWorker()
+        if (settingsRepository.isCleanupPaused()) {
+            app.resumeApp()
+            _isCleanupPaused.value = false
             runCleanupNow(context)
+        } else {
+            app.pauseApp()
+            _isCleanupPaused.value = true
         }
+    }
+
+    fun isSetupCompleted(): Boolean = settingsRepository.isSetupCompleted()
+
+    fun setSetupCompleted() {
+        settingsRepository.setSetupCompleted()
     }
 
     fun toggleOverlaySide() {
