@@ -34,6 +34,13 @@ class SettingsRepository(context: Context) {
         prefs.edit { putBoolean(AppConstants.PREF_SETUP_DONE, true) }
     }
 
+    /** When the current monitoring session began (0 = no session boundary). */
+    fun getMonitoringSince(): Long = prefs.getLong(AppConstants.PREF_MONITORING_SINCE, 0L)
+
+    fun setMonitoringSince(time: Long) {
+        prefs.edit { putLong(AppConstants.PREF_MONITORING_SINCE, time) }
+    }
+
     fun isOverlayOnRightSide(): Boolean {
         return prefs.getBoolean(AppConstants.PREF_OVERLAY_RIGHT, false)
     }

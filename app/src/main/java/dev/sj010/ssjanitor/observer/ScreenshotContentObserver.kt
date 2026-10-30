@@ -324,6 +324,14 @@ class ScreenshotContentObserver(
             return
         }
 
+        // Never surface screenshots captured before the current monitoring
+        // session began — e.g. taken while Sshot was paused. The startup scan
+        // intentionally looks back in time, but only for the running session.
+        if (createdAt < settingsRepository.getMonitoringSince()) {
+            Log.d(TAG, "Skipping screenshot from before monitoring started: $uriString")
+            return
+        }
+
         val isAutoArchive = settingsRepository.isAutoArchiveEnabled()
         val entity = ScreenshotEntity(
             uri = uriString,

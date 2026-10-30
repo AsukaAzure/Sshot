@@ -63,6 +63,9 @@ class SshotApp : Application() {
 
     /** Resumes monitoring and re-arms the daily safety-net cleanup. */
     fun resumeApp() {
+        // Mark the session start BEFORE the detector runs its initial scan, so
+        // screenshots captured while paused are never surfaced on resume.
+        settingsRepository.setMonitoringSince(System.currentTimeMillis())
         settingsRepository.setCleanupPaused(false)
         startDetectionService()
         scheduleCleanupWorker()
